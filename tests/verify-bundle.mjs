@@ -106,7 +106,7 @@ const sectionEntry = registered.find((o) => o.name === 'settings.section');
 assert.ok(sectionEntry, '必须向 settings.section 注册');
 assert.equal(sectionEntry.id, 'writing-preset');
 assert.equal(sectionEntry.order, 25);
-assert.equal(sectionEntry.label(), '写作协作配置');
+assert.equal(sectionEntry.label(), '文本模式');
 assert.ok(registered.find((o) => o.name === 'plugins.item'), '必须向 plugins.item 注册');
 
 

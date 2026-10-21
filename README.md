@@ -81,15 +81,15 @@ https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/ch
   dsh plugin --profile web add https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/chuanban-dsh-writingset.tgz https://github.com/Anarcadia/chuanban-dsh-theme/releases/latest/download/chuanban-dsh-theme.tgz
   ```
 
-安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「纯净通用写作底座」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 写作协作配置」** 面板中热切换，新开会话即刻生效，无需重启。
+安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「纯净通用写作底座」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 文本模式」** 面板中热切换，新开会话即刻生效，无需重启。
 
 ---
 
 ## 快速上手：用「三层积木」搭好你的写作台
 
-打开 DSH **设置（`Cmd + ,`）→ 写作协作配置**（或左侧 **插件 → `dsh-text-preset`**），面板由上至下对应了这套**三层提示词积木**的组装逻辑：
+打开 DSH **设置（`Cmd + ,`）→ 文本模式**（或左侧 **插件 → `dsh-text-preset`**），面板由上至下对应了这套**三层提示词积木**的组装逻辑：
 
-![写作协作配置面板与推荐设置](docs/screenshot-settings.png)
+![文本模式面板与推荐设置](docs/screenshot-settings.png)
 
 ### 第一、二层：去工程化协作基底 + 写作职能人设
 

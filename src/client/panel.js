@@ -13,7 +13,7 @@ const PRESET_ORDER = ['pure', 'office', 'research', 'rp', 'pro'];
 const OPTIONS = PRESET_ORDER.map((id) => WRITING_PRESET_BRICKS[id]);
 const MODE_ORDER = ['off', 'custom', 'workspace'];
 const MODES = {
-  off: { id: 'off', name: '初始纯净', summary: '仅双层积木（职能 + 协作准则），不读取工作区任何文档' },
+  off: { id: 'off', name: '初始纯净', summary: '仅注入职能人设与【文档与工具准则】，不读取工作区任何文档' },
   custom: { id: 'custom', name: '自定义填写', summary: '在下方填写工作区提示，追加在初始提示后，或整段替换初始提示' },
   workspace: { id: 'workspace', name: '工作区识别', summary: '会话组装时自动读取工作区 AGENTS.md / CLAUDE.md / memory / rules 并追加' },
 };
@@ -76,9 +76,9 @@ function WritingPanel(props) {
   });
 
   return h('div', { style: S.wrap }, [
-    h('h2', { key: 'h', style: S.title }, '写作协作配置'),
+    h('h2', { key: 'h', style: S.title }, '文本模式'),
     h('p', { key: 'p', style: S.hint },
-      '选择前台「文本模式」实际注入的写作职能积木。修改后即时生效，新开会话使用新的预设。'),
+      '选择聊天窗底部「文本模式」预设实际注入的职能人设。修改后即时生效，新开会话使用新的预设。'),
     disabled ? h('p', { key: 'd', style: S.hint }, '配置服务暂不可用（只读或未就绪）。') : null,
     h('div', { key: 'opts', style: { display: 'grid', gap: 8 } }, OPTIONS.map((opt) =>
       h('button', {
@@ -168,7 +168,7 @@ function apply(ctx) {
         name: 'settings.section',
         id: 'writing-preset',
         order: 25,
-        label: () => '写作协作配置',
+        label: () => '文本模式',
         inject: injected,
       }, WritingPanel)),
       // 插件页卡片
@@ -176,7 +176,7 @@ function apply(ctx) {
         name: 'plugins.item',
         id: 'writing-preset',
         order: 50,
-        label: () => '写作协作配置',
+        label: () => '文本模式',
         inject: injected,
       }, WritingPanel)),
     ];
