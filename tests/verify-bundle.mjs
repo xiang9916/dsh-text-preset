@@ -236,6 +236,9 @@ function createMockContext() {
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
   assert.ok(!rendered.includes('【当前职能'), '默认预设必须为 pure，不得注入任何职能人设');
   assert.match(rendered, /【文档与工具协作准则】/, '默认 pure 必须拼接底座准则');
+  assert.ok(rendered.includes('`web_search`') && rendered.includes('`web_fetch`'), '底座准则应说明联网检索与原文抓取（tool-web 已挂载）');
+  assert.ok(rendered.includes('`skill`'), '底座准则应说明技能按需加载（tool-skill 已挂载）');
+  assert.ok(rendered.includes('外部不可信数据'), '底座准则应提示网页内容按不可信数据处理');
 }
 
 // 1. 验证 pro 预设（v2 无我沉浸版）
