@@ -14,7 +14,7 @@
     default: writing
 
 - insert:
-    # 1. 宿主侧积木动态注入器：负责后台选项配置与 {{writing_active_brick}} 变量注册
+    # 1. 宿主侧提示层动态注入器：负责后台选项配置与 {{writing_active_brick}} 变量注册
     - id: writing-brick-injector
       name: 'dsh-text-preset'
       config:
@@ -31,7 +31,7 @@
       config:
         id: writing
         name: 文本模式
-        description: 纯净本地文档创作与协作模式。具体注入的写作职能积木由插件后台 activePreset 选项动态控制。
+        description: 纯净本地文档创作与协作模式。具体注入的写作职能提示层由插件后台 activePreset 选项动态控制。
         order: 1
         plugins:
           - id: persona
@@ -81,7 +81,7 @@
 
     # =========================================================================
     # 可选直选预设行（默认收折 disabled: true）
-    # 用户既可通过上方 writing-brick-injector 的后台配置项决定主预设注入哪个积木，
+    # 用户既可通过上方 writing-brick-injector 的后台配置项决定主预设注入哪个提示层，
     # 也可在 DSH 插件详情页直接打开任意一行的开关将其单独暴露到前台预设选择器。
     # =========================================================================
 
@@ -322,7 +322,7 @@
       config:
         id: writing-pure
         name: 写作 · 纯净底座
-        description: 挂载纯净本地文档读写、查找、整理、Word 转换工具与文档协作准则，不预设角色倾向。
+        description: 挂载纯净本地文档读写、查找、整理、Word 转换工具与文档工具准则，不预设角色倾向。
         order: 5
         plugins:
           - id: persona

@@ -1,7 +1,7 @@
 /**
- * dsh-text-preset - 预设积木库与提示词组装器
+ * dsh-text-preset - 预设提示层库与提示词组装器
  *
- * 维护两层搭积木提示词架构：
+ * 维护两层提示层架构：
  * 1. 第一层（公共底座）：BASE_TOOL_PROTOCOL（文档与工具准则）
  * 2. 第二层（职能人设）：WRITING_PRESET_BRICKS（四大初始预设 + v1 留档）
  */
@@ -14,7 +14,7 @@ export interface WritingPresetBrick {
 }
 
 /**
- * 第一层积木：公共文档与工具准则（去工程化底座）
+ * 第一层提示层：公共文档与工具准则（去工程化底座）
  */
 export const BASE_TOOL_PROTOCOL = `【文档与工具准则】
 请严格遵守以下规则：
@@ -34,7 +34,7 @@ export const BASE_TOOL_PROTOCOL = `【文档与工具准则】
    - Word 文档先用 convert_document 转成 Markdown 处理，改完用 export_document 导出交付。`;
 
 /**
- * 第二层积木字典：五大职能预设（纯净底座 / 公文办公 / 公文研究 / 创作与 RP / 职业写手）
+ * 第二层提示层字典：五大职能预设（纯净底座 / 公文办公 / 公文研究 / 创作与 RP / 职业写手）
  */
 export const WRITING_PRESET_BRICKS: Record<string, WritingPresetBrick> = {
   pure: {
@@ -90,7 +90,7 @@ export const WRITING_PRESET_BRICKS: Record<string, WritingPresetBrick> = {
 
 /**
  * 工作区提示三模式（Phase 7）：
- * - off：仅双层积木（现状），customPromptOverride 不生效；
+ * - off：仅双层提示层（现状），customPromptOverride 不生效；
  * - custom：customPromptOverride 生效，append 追加在初始提示后 / replace 整段替换；
  * - workspace：宿主在 render 期读取的工作区文档（workspaceDocs 入参，纯文本层不碰 fs）。
  */

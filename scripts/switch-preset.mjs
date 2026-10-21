@@ -44,7 +44,7 @@ function showHelp() {
 DeepSeek Harness (DSH) 纯净写作协作预设切换工具
 
 用法:
-  node scripts/switch-preset.mjs --list          列出所有可用预设积木及当前激活项
+  node scripts/switch-preset.mjs --list          列出所有可用预设提示层及当前激活项
   node scripts/switch-preset.mjs --show [id]     打印指定预设（默认当前激活项）的组装后 System Prompt
   node scripts/switch-preset.mjs <presetId>      切换后台注入项并更新 cordis.patch.yml
 
@@ -69,7 +69,7 @@ function run() {
   const firstArg = args[0];
 
   if (firstArg === '--list' || firstArg === '-l') {
-    console.log(`\n【可用预设积木列表】（当前 cordis.patch.yml 激活项: [${current}]）`);
+    console.log(`\n【可用预设提示层列表】（当前 cordis.patch.yml 激活项: [${current}]）`);
     console.log('='.repeat(70));
     for (const [id, item] of Object.entries(WRITING_PRESET_BRICKS)) {
       const activeMark = id === current ? '  ★ [当前激活]' : '';

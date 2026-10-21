@@ -1,5 +1,5 @@
 /**
- * dsh-text-preset/file-butler - 文件管理积木（受限四动作）
+ * dsh-text-preset/file-butler - 文件管理模块（受限四动作）
  *
  * 提供 copy_file / move_file / trash_file / stat_file 四个纯路径参数工具：
  * 服务端直接执行复制/移动/入回收站/查元数据，长稿与二进制不经过模型上下文。

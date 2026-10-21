@@ -106,7 +106,7 @@ const sectionEntry = registered.find((o) => o.name === 'settings.section');
 assert.ok(sectionEntry, '必须向 settings.section 注册');
 assert.equal(sectionEntry.id, 'writing-preset');
 assert.equal(sectionEntry.order, 25);
-assert.equal(sectionEntry.label(), '文本模式');
+assert.equal(sectionEntry.label(), '文本模式设置');
 assert.ok(registered.find((o) => o.name === 'plugins.item'), '必须向 plugins.item 注册');
 
 
@@ -381,11 +381,11 @@ assert.doesNotMatch(patchYamlEffective, /readImage/, 'tool-fs 无 readImage 开�
 assert.doesNotMatch(patchYamlEffective, /\bread:\s*true\b/, 'tool-fs 无 read 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bwrite:\s*true\b/, 'tool-fs 无 write 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bedit:\s*true\b/, 'tool-fs 无 edit 布尔开关，不得写入无效配置键');
-// 预设已挂载 tool-fs-search（glob/grep 只读查找），协作准则同步引用，且组内声明必须存在
+// 预设已挂载 tool-fs-search（glob/grep 只读查找），工具准则同步引用，且组内声明必须存在
 assert.ok(patchYaml.includes("'@deepseek-ai/dsh-tool-fs-search'"), 'pure-fs 组必须挂载 dsh-tool-fs-search（目录列举/内容检索）');
 const fsSearchCount = (patchYaml.match(/dsh-tool-fs-search/g) || []).length;
 assert.ok(fsSearchCount >= 5, `五个预设的 pure-fs 组均须挂载 fs-search（实际 ${fsSearchCount} 处）`);
-assert.match(patchYamlEffective, /glob/, '协作准则应说明 glob 查找（fs-search 已挂载）');
+assert.match(patchYamlEffective, /glob/, '工具准则应说明 glob 查找（fs-search 已挂载）');
 
 // 主预设显示名改为「文本模式」，不得残留旧名
 assert.match(patchYamlEffective, /name:\s*文本模式/, '主预设显示名必须为 文本模式');
@@ -489,7 +489,7 @@ console.log('\n[Test 5] 工作区提示三模式矩阵与 readWorkspaceDocs 真�
   const degraded = presetsModule.assembleWritingPrompt({
     activePreset: 'pro', includeBaseProtocol: true, workspacePromptMode: 'workspace', workspaceDocs: '',
   });
-  assert.ok(!degraded.includes('【工作区上下文规则】'), '空工作区文档必须静音降级为仅初始积木');
+  assert.ok(!degraded.includes('【工作区上下文规则】'), '空工作区文档必须静音降级为仅初始提示层');
 }
 
 // 5.4 readWorkspaceDocs 真实文件系统：顺序、去重、空目录降级、64KB 截断
@@ -540,7 +540,7 @@ console.log('\n[Test 5] 工作区提示三模式矩阵与 readWorkspaceDocs 真�
   assert.match(withCwd, /协作规则/, '有 cwd 时必须含 AGENTS.md 内容');
   const noCwd = provider({});
   assert.ok(!noCwd.includes('【工作区上下文规则】'), '无 cwd 时必须静音降级');
-  assert.match(noCwd, /【当前职能：职业写手】/, '降级后初始积木保持完好');
+  assert.match(noCwd, /【当前职能：职业写手】/, '降级后初始提示层保持完好');
 
   fs.rmSync(wsDir, { recursive: true, force: true });
   fs.rmSync(emptyDir, { recursive: true, force: true });
@@ -549,7 +549,7 @@ console.log('\n[Test 5] 工作区提示三模式矩阵与 readWorkspaceDocs 真�
 console.log('✓ [Test 5 通过] 三模式矩阵（off/custom-append/custom-replace/workspace）、静音降级、64KB O(1) 截断与 provider 上下文注入验证完成。');
 
 // ═══════════════════════════════════════════════════════════════
-// [Test 6] file-butler 文件管理积木：注册、真实文件系统功能与 yml 挂载
+// [Test 6] file-butler 文件管理模块：注册、真实文件系统功能与 yml 挂载
 // ═══════════════════════════════════════════════════════════════
 {
   const butler = await import('../dist/file-butler.js');

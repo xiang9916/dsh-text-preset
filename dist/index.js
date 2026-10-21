@@ -88,7 +88,7 @@ export const Config = SchemaFactory.object({
     'pro',
   ])
     .default('pure')
-    .description('当前激活的写作人设积木：pure(纯净底座·默认) / office(公文办公) / research(公文研究) / rp(创作与RP) / pro(职业写手v2)')
+    .description('当前激活的写作人设提示层：pure(纯净底座·默认) / office(公文办公) / research(公文研究) / rp(创作与RP) / pro(职业写手v2)')
     .volatile(),
 
   includeBaseProtocol: SchemaFactory.boolean()
@@ -103,7 +103,7 @@ export const Config = SchemaFactory.object({
 
   workspacePromptMode: SchemaFactory.union(['off', 'custom', 'workspace'])
     .default('off')
-    .description('工作区提示三模式：off(仅初始积木) / custom(使用自定义填写) / workspace(会话组装时读取工作区 AGENTS.md、memory、rules 等标准文档)')
+    .description('工作区提示三模式：off(仅初始提示层) / custom(使用自定义填写) / workspace(会话组装时读取工作区 AGENTS.md、memory、rules 等标准文档)')
     .volatile(),
 
   customPromptBehavior: SchemaFactory.union(['append', 'replace'])
@@ -138,7 +138,7 @@ function sliceByUtf8Bytes(text, maxBytes) {
 
 /**
  * 读取并拼接工作区基础设施文档（宿主侧，render 期同步执行）。
- * 任一文件缺失静默跳过；全部缺失返回空串（workspace 模式静音降级为仅初始积木）。
+ * 任一文件缺失静默跳过；全部缺失返回空串（workspace 模式静音降级为仅初始提示层）。
  */
 export function readWorkspaceDocs(cwd) {
   if (!cwd || typeof cwd !== 'string') return '';

@@ -210,7 +210,7 @@ window.__ModuleLoader__.load({
 		  });
 
 		  return h('div', { style: S.wrap }, [
-		    h('h2', { key: 'h', style: S.title }, '文本模式'),
+		    h('h2', { key: 'h', style: S.title }, '文本模式设置'),
 		    h('p', { key: 'p', style: S.hint },
 		      '选择聊天窗底部「文本模式」预设实际注入的职能人设。修改后即时生效，新开会话使用新的预设。'),
 		    disabled ? h('p', { key: 'd', style: S.hint }, '配置服务暂不可用（只读或未就绪）。') : null,
@@ -302,7 +302,7 @@ window.__ModuleLoader__.load({
 		        name: 'settings.section',
 		        id: 'writing-preset',
 		        order: 25,
-		        label: () => '文本模式',
+		        label: () => '文本模式设置',
 		        inject: injected,
 		      }, WritingPanel)),
 		      // 插件页卡片
@@ -310,7 +310,7 @@ window.__ModuleLoader__.load({
 		        name: 'plugins.item',
 		        id: 'writing-preset',
 		        order: 50,
-		        label: () => '文本模式',
+		        label: () => '文本模式设置',
 		        inject: injected,
 		      }, WritingPanel)),
 		    ];
