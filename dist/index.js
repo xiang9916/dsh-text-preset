@@ -93,7 +93,7 @@ export const Config = SchemaFactory.object({
 
   includeBaseProtocol: SchemaFactory.boolean()
     .default(true)
-    .description('是否拼接第一层文档与工具协作准则（去工程化底座）')
+    .description('是否拼接第一层文档与工具协作准则（务实写作底座）')
     .volatile(),
 
   customPromptOverride: SchemaFactory.string()
