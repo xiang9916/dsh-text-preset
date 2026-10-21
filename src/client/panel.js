@@ -9,7 +9,7 @@ const h = react.createElement;
 /*__PRESETS__*/
 
 const NS = 'writing-brick-injector';
-const PRESET_ORDER = ['pro', 'play', 'rp', 'pure', 'pro-v1'];
+const PRESET_ORDER = ['pure', 'pro-v1', 'play', 'rp', 'pro'];
 const OPTIONS = PRESET_ORDER.map((id) => WRITING_PRESET_BRICKS[id]);
 const MODE_ORDER = ['off', 'custom', 'workspace'];
 const MODES = {
@@ -45,7 +45,7 @@ function WritingPanel(props) {
   const state = props.useWritingForm((snapshot) => snapshot);
   const value = state.value || {};
   const cfg = {
-    activePreset: PRESET_ORDER.includes(value.activePreset) ? value.activePreset : 'pro',
+    activePreset: PRESET_ORDER.includes(value.activePreset) ? value.activePreset : 'pure',
     includeBaseProtocol: value.includeBaseProtocol !== false,
     customPromptOverride: typeof value.customPromptOverride === 'string' ? value.customPromptOverride : '',
     workspacePromptMode: MODE_ORDER.includes(value.workspacePromptMode) ? value.workspacePromptMode : 'off',

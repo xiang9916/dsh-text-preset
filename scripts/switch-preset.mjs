@@ -20,11 +20,11 @@ const PATCH_PATH = path.resolve(__dirname, '../cordis.patch.yml');
 
 function readCurrentPreset() {
   if (!fs.existsSync(PATCH_PATH)) {
-    return 'pro';
+    return 'pure';
   }
   const content = fs.readFileSync(PATCH_PATH, 'utf-8');
   const match = content.match(/activePreset:\s*([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : 'pro';
+  return match ? match[1] : 'pure';
 }
 
 function updatePatchPreset(nextPreset) {
@@ -49,11 +49,11 @@ DeepSeek Harness (DSH) 纯净写作协作预设切换工具
   node scripts/switch-preset.mjs <presetId>      切换后台注入项并更新 cordis.patch.yml
 
 可用预设 ID:
-  pro      职业写手（v2 无我沉浸版 · 默认）
+  pure     纯净通用写作底座（默认）
+  pro-v1   职业写手 v1（第一性原理锋利版 · 留档备选）
   play     纯粹娱乐（随性脑洞与灵感共谋）
   rp       创作与 RP 扮演（全浸入式叙事与第四面墙）
-  pure     纯净通用写作底座（零预设人设白板）
-  pro-v1   职业写手 v1（第一性原理锋利版 · 留档备选）
+  pro      职业写手（v2 无我沉浸版）
 `);
 }
 

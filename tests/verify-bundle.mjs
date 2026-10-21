@@ -82,6 +82,11 @@ const clientExports = loaded.factory((id) => {
 assert.equal(typeof clientExports.apply, 'function', 'client.apply 必须为函数');
 assert.ok(clientExports.inject.includes('configForms') && clientExports.inject.includes('slots'), 'client.inject 缺少必需服务');
 assert.equal(clientExports.PRESET_OPTIONS.length, 5, 'client 必须暴露 5 个预设选项');
+assert.equal(
+  Array.from(clientExports.PRESET_OPTIONS, (o) => o.id).join(','),
+  'pure,pro-v1,play,rp,pro',
+  '预设面板顺序必须为 pure → pro-v1 → play → rp → pro',
+);
 
 const registered = [];
 const effects = [];
@@ -224,7 +229,16 @@ function createMockContext() {
   };
 }
 
-// 1. 验证默认配置（pro - v2 无我沉浸版）
+// 0. 未指定 activePreset 时应默认 pure（纯净底座，不注入职能人设）
+{
+  const ctx = createMockContext();
+  hostModule.apply(ctx, {});
+  const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
+  assert.ok(!rendered.includes('【当前职能'), '默认预设必须为 pure，不得注入任何职能人设');
+  assert.match(rendered, /【文档与工具协作准则】/, '默认 pure 必须拼接底座准则');
+}
+
+// 1. 验证 pro 预设（v2 无我沉浸版）
 {
   const ctx = createMockContext();
   hostModule.apply(ctx, { activePreset: 'pro', includeBaseProtocol: true });
@@ -344,6 +358,7 @@ const patchYamlEffective = patchYaml
 assert.match(patchYaml, /id:\s*agent-preset-registry/, '补丁必须包含 agent-preset-registry 配置');
 assert.match(patchYaml, /default:\s*writing/, '默认预设必须设置为 writing');
 assert.match(patchYaml, /id:\s*writing-brick-injector/, '必须包含 writing-brick-injector 注入器');
+assert.match(patchYamlEffective, /activePreset:\s*pure/, '默认激活预设必须为 pure（纯净通用写作底座）');
 assert.match(patchYaml, /id:\s*preset-writing\b/, '必须包含 preset-writing 主预设');
 assert.match(patchYaml, /prefix:\s*['"]\{\{writing_active_brick\}\}['"]/, '主预设必须使用 {{writing_active_brick}} 变量插值');
 assert.match(patchYaml, /complete:\s*true/, '预设必须开启 complete: true 以彻底清除原生编程提示词');
@@ -397,9 +412,17 @@ console.log('\n[Test 4] 测试 scripts/switch-preset.mjs 命令行工具切换�
 
 // 1. 运行 --list 命令
 const listOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --list`, { encoding: 'utf-8' });
-assert.match(listOutput, /职业写手（v2 无我沉浸版 · 默认）/);
+assert.match(listOutput, /纯净通用写作底座（默认）/);
 assert.match(listOutput, /纯粹娱乐/);
 assert.match(listOutput, /创作与 RP 扮演/);
+assert.match(listOutput, /职业写手（v2 无我沉浸版）/);
+// 列表顺序必须为 pure → pro-v1 → play → rp → pro
+const listOrder = ['纯净通用写作底座（默认）', '职业写手 v1', '纯粹娱乐', '创作与 RP 扮演', '职业写手（v2 无我沉浸版）'];
+const listIndex = listOrder.map((s) => listOutput.indexOf(s));
+assert.ok(
+  listIndex.every((v, i) => v >= 0 && (i === 0 || v > listIndex[i - 1])),
+  `CLI 预设列表顺序不符合要求（实际位置：${listIndex.join(', ')}）`,
+);
 
 // 2. 切换为 play
 execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} play`, { encoding: 'utf-8' });
@@ -410,10 +433,10 @@ assert.match(patchAfterPlay, /activePreset:\s*play/, '切换后 cordis.patch.yml
 const showOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --show`, { encoding: 'utf-8' });
 assert.match(showOutput, /【当前职能：纯粹娱乐与灵感共谋】/);
 
-// 4. 切回默认的 pro
-execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} pro`, { encoding: 'utf-8' });
-const patchAfterPro = fs.readFileSync(path.join(ROOT_DIR, 'cordis.patch.yml'), 'utf-8');
-assert.match(patchAfterPro, /activePreset:\s*pro/, '切回后 cordis.patch.yml 的 activePreset 必须恢复为 pro');
+// 4. 切回默认的 pure
+execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} pure`, { encoding: 'utf-8' });
+const patchAfterDefault = fs.readFileSync(path.join(ROOT_DIR, 'cordis.patch.yml'), 'utf-8');
+assert.match(patchAfterDefault, /activePreset:\s*pure/, '切回后 cordis.patch.yml 的 activePreset 必须恢复为 pure');
 
 console.log('✓ [Test 4 通过] CLI 切换工具无损更新 cordis.patch.yml 测试完成。');
 

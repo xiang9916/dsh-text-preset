@@ -18,7 +18,7 @@
     - id: writing-brick-injector
       name: 'dsh-text-preset'
       config:
-        activePreset: pro
+        activePreset: pure
         includeBaseProtocol: true
         customPromptOverride: ''
         workspacePromptMode: off
