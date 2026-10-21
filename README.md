@@ -40,34 +40,42 @@ DSH 在这一点上也不例外。虽然它内置了「极简模式（`minimal`�
 
 ## 安装
 
-本仓库为个人 fork，尚未发布 Release，推荐从源码本地安装：
-
-### 1. 打包为 tgz 后安装（通用）
-
-在仓库根目录执行：
+### 1. npm（推荐）
 
 ```sh
-npm pack
-# 生成 dsh-text-preset-0.0.0.tgz
-dsh plugin --profile web add ./dsh-text-preset-0.0.0.tgz
+dsh plugin --profile web add dsh-text-preset
 dsh web
 ```
 
+- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.2.1`
 - **未全局安装 `dsh` CLI**：将上面的 `dsh` 替换为 `npx @deepseek-ai/dsh`。
 
-  ```sh
-  npx @deepseek-ai/dsh plugin --profile web add ./dsh-text-preset-0.0.0.tgz
-  ```
+### 2. GitHub Release（tgz）
 
-### 2. DSH Desktop 桌面端（最简）
+```text
+https://github.com/xiang9916/dsh-text-preset/releases/latest/download/dsh-text-preset.tgz
+```
 
-打开 **设置 → 插件**，在安装输入框粘贴上面生成的 tgz 绝对路径即可。也可以直接运行仓库自带的注册脚本（以 symlink 方式挂进桌面版 profile，带备份、可重复执行，改完源码无需重新打包）：
+DSH Desktop 打开 **设置 → 插件**，粘贴上面的 URL 即可；CLI 用法：
+
+```sh
+npx @deepseek-ai/dsh plugin --profile web add https://github.com/xiang9916/dsh-text-preset/releases/latest/download/dsh-text-preset.tgz
+```
+
+### 3. 从源码安装
+
+```sh
+npm pack
+dsh plugin --profile web add ./dsh-text-preset-0.2.1.tgz
+```
+
+也可以直接运行仓库自带的注册脚本（以 symlink 方式挂进桌面版 profile，带备份、可重复执行，改完源码无需重新打包）：
 
 ```sh
 ./scripts/install-desktop.sh
 ```
 
-### 3. 安装上游正式版
+### 4. 安装上游原版
 
 如果只想用船板的原版，直接装上游 Release（包名仍是 `chuanban-dsh-writingset`）：
 
