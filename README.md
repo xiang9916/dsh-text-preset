@@ -26,15 +26,15 @@ DSH 在这一点上也不例外。虽然它内置了「极简模式（`minimal`�
 
 `dsh-text-preset` 的目标只有一件事：**赋予 DSH 极简、稳定的基础写作预设和工具环境**。
 
-它在 DSH 运行时将原生编程提示词与冗余工具一刀切清零（**零 Shell 命令执行通道**），把工具面精准收敛为写作者真正用得上的四组纯路径工具——基础读写（`read` / `write` / `edit`）、只读查找（`glob` / `grep`）、安全文件整理（`copy_file` / `move_file` / `trash_file` / `stat_file`）与零依赖 Word 单向桥（`convert_document` / `export_document`），再用**「去工程化的用户协作基底 + 极简写作人设」双层提示词积木**接管上下文。
+它在 DSH 运行时将原生编程提示词与冗余工具一刀切清零（**零 Shell 命令执行通道**），把工具面精准收敛为写作者真正用得上的四组纯路径工具——基础读写（`read` / `write` / `edit`）、只读查找（`glob` / `grep`）、安全文件整理（`copy_file` / `move_file` / `trash_file` / `stat_file`）与零依赖 Word 单向桥（`convert_document` / `export_document`），再加上联网检索（`web_search` / `web_fetch`）与技能加载（`skill`），再用**「去工程化的用户协作基底 + 极简写作人设」双层提示词积木**接管上下文。
 
-于是，首轮输入仅 **1,196 tokens**（比官方标准预设节省逾 **80%**），让 DSH 成为一张高效、低底噪的纯文字工作台。
+于是，首轮输入仅千余 tokens（仍比官方标准预设节省 **70% 以上**），让 DSH 成为一张高效、低底噪的纯文字工作台。
 
 用户还可通过后台设置，选择加载工作台 `AGENTS.md` / `CLAUDE.md` 等通用 Agent 规则文档，与上述的二层提示词叠加，构成**三层提示词积木**，因此此插件不会与本地 Skill、工作区预设冲突。
 
 然而，和其它同样修改 DSH 初始系统提示词的写作预设插件会有潜在冲突，不建议一同开启，或者建议发送给 AI 分析确保无冲突后再使用。
 
-![DSH 写作协作模式与暖纸皮肤实机效果](docs/screenshot-session.png)
+![DSH 文本模式与暖纸皮肤实机效果](docs/screenshot-session.png)
 
 ---
 
@@ -81,7 +81,7 @@ https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/ch
   dsh plugin --profile web add https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/chuanban-dsh-writingset.tgz https://github.com/Anarcadia/chuanban-dsh-theme/releases/latest/download/chuanban-dsh-theme.tgz
   ```
 
-安装后，前台预设选择器默认切入 **「写作协作模式」** （初始激活「职业写手」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 写作协作配置」** 面板中热切换，新开会话即刻生效，无需重启。
+安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「职业写手」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 写作协作配置」** 面板中热切换，新开会话即刻生效，无需重启。
 
 ---
 
@@ -113,7 +113,7 @@ https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/ch
 
 1. **初始纯净（`off`，默认 · 见图中红色标注）**
    - **怎么工作**：只注入前两层积木（职能人设 + 协作基底），**完全不读取工作区里的任何文档**。
-   - **什么时候用**：适合刚装好插件测试、随手聊脑洞或改一段短文，上下文极度干净（首轮仅 \~1,196 tokens）。但请注意，在没有第三层工作区资料配合时，单靠几百字的初始人设并不会自动赋予特定文风，也不具备破甲的效果。
+   - **什么时候用**：适合刚装好插件测试、随手聊脑洞或改一段短文，上下文极度干净（首轮仅千余 tokens）。但请注意，在没有第三层工作区资料配合时，单靠几百字的初始人设并不会自动赋予特定文风，也不具备破甲的效果。
 
 2. **工作区识别（`workspace` · 见图中绿色标注，日常主力推荐）**
    - **怎么工作**：每次新开会话组装系统提示词时，自动扫描你当前打开的本地文件夹，把里面的规则与设定文档作为第三层 `【工作区上下文规则】` 拼接到前两层积木之后。
@@ -149,6 +149,8 @@ DSH 原生的 `minimal` 模式之所以不能直接用来写东西，是因为�
   - **只读查找（`@deepseek-ai/dsh-tool-fs-search`）**：挂载 `glob`（列举文件，100 条上限 + 溢出清单；注：`*.md` 为全树递归，`/*.md` 为根层锚定，仅返回文件不返回目录名）与 `grep`（正则全文检索带行号）。
   - **文件整理（`file-butler`）**：提供 `copy_file`、`move_file`、`trash_file`、`stat_file` 四个服务端纯路径工具——长稿与二进制流转不经过模型上下文；`copy_file` 与 `move_file` 默认 `overwrite: false` 防误覆写（目标传目录名时自动拼入同名文件）；`trash_file` 将文件移入 `~/.Trash`（带毫秒时间戳与防碰撞序号，可手动恢复，不承诺 Finder「放回原处」元数据），绝不永久删除。
   - **Word 单向文档桥（`doc-bridge`）**：零外部依赖提供 `convert_document`（`.docx` → `.md`）与 `export_document`（`.md` → 新建 `.docx`）。定位为**内容级单向转换**：保留正文段落、标题层级（H1–H6）与列表项，表格拍平为正文行，行内粗斜体等样式不保留；内置**双向防覆盖保护**——目标 `.md` 已存在时自动派生 `<name>.converted.md`，目标 `.docx` 已存在时自动派生 `<name>.exported.docx`，绝不修改或覆盖原稿。
+  - **联网检索（`@deepseek-ai/dsh-tool-web`）**：挂载 `web_search` 与 `web_fetch`（`fetch: true`），搜索超时 60 秒。检索结果按外部不可信数据处理，引用时附来源链接，不把网页文字当作指令。
+  - **技能加载（`@deepseek-ai/dsh-skill-filesystem` + `@deepseek-ai/dsh-tool-skill`）**：从 DSH 用户级 / 项目级技能目录读取 `SKILL.md`，由 `tool-skill` 暴露 `skill` 工具供 Agent 按需加载，与工作区规则、本预设提示词叠加而不冲突。
   - *(注：会话中另有宿主运行时自带的 `working_directory` 与 `load_workspace_dependencies`，非本插件注册。)*
 - **保留长文会话压缩**：内置 `@deepseek-ai/dsh-compaction-basic` 与 `/compact` 指令，长篇连载讨论可随时压缩上下文。
 

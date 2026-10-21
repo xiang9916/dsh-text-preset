@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * scripts/switch-preset.mjs
- * 纯净写作协作模式 - 后台预设一键切换与预览 CLI 工具
+ * 纯净文本模式 - 后台预设一键切换与预览 CLI 工具
  *
  * 用法：
  *   node scripts/switch-preset.mjs --list

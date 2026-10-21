@@ -167,7 +167,7 @@ window.__ModuleLoader__.load({
 		  const modeName = { off: '初始纯净', custom: '自定义填写', workspace: '工作区识别' }[cfg.workspacePromptMode];
 
 		  if (props.view === 'summary') {
-		    return '写作协作模式的初始预设（当前：' + WRITING_PRESET_BRICKS[cfg.activePreset].name + ' · 工作区提示：' + modeName + '）';
+		    return '文本模式的初始预设（当前：' + WRITING_PRESET_BRICKS[cfg.activePreset].name + ' · 工作区提示：' + modeName + '）';
 		  }
 
 		  const currentBase = () => assembleWritingPrompt({
@@ -188,7 +188,7 @@ window.__ModuleLoader__.load({
 		  return h('div', { style: S.wrap }, [
 		    h('h2', { key: 'h', style: S.title }, '写作协作配置'),
 		    h('p', { key: 'p', style: S.hint },
-		      '选择前台「写作协作模式」实际注入的写作职能积木。修改后即时生效，新开会话使用新的预设。'),
+		      '选择前台「文本模式」实际注入的写作职能积木。修改后即时生效，新开会话使用新的预设。'),
 		    disabled ? h('p', { key: 'd', style: S.hint }, '配置服务暂不可用（只读或未就绪）。') : null,
 		    h('div', { key: 'opts', style: { display: 'grid', gap: 8 } }, OPTIONS.map((opt) =>
 		      h('button', {

@@ -1,5 +1,5 @@
-# DeepSeek Harness (DSH) 纯净写作协作模式插件声明式补丁
-# 默认将前台预设指向「写作协作模式」，并通过 writing-brick-injector 动态注入所选初始预设
+# DeepSeek Harness (DSH) 纯净文本模式插件声明式补丁
+# 默认将前台预设指向「文本模式」，并通过 writing-brick-injector 动态注入所选初始预设
 #
 # 纯净工具面说明（DSH 0.2.0-rc.2 源码核验）：
 # - @deepseek-ai/dsh-tool-fs 的 Config 仅接受 readLimit / readMaxLineLength /
@@ -24,13 +24,13 @@
         workspacePromptMode: off
         customPromptBehavior: append
 
-    # 2. 主预设：写作协作模式（前台默认选中）
+    # 2. 主预设：文本模式（前台默认选中）
     # 使用 {{writing_active_brick}} 变量动态插值，具体职能由上方 writing-brick-injector 的后台选项决定
     - id: preset-writing
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: writing
-        name: 写作协作模式
+        name: 文本模式
         description: 纯净本地文档创作与协作模式。具体注入的写作职能积木由插件后台 activePreset 选项动态控制。
         order: 1
         plugins:
@@ -59,6 +59,15 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
           - id: compaction
             name: cordis:group
             group: true
@@ -122,6 +131,15 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
           - id: compaction
             name: cordis:group
             group: true
@@ -177,6 +195,15 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
           - id: compaction
             name: cordis:group
             group: true
@@ -232,6 +259,15 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
           - id: compaction
             name: cordis:group
             group: true
@@ -284,6 +320,15 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
           - id: compaction
             name: cordis:group
             group: true

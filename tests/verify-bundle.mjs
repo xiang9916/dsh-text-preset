@@ -1,6 +1,6 @@
 /**
  * tests/verify-bundle.mjs
- * 纯净写作协作模式插件（dsh-text-preset）全链路自检验证套件
+ * 纯净文本模式插件（dsh-text-preset）全链路自检验证套件
  */
 
 import assert from 'node:assert/strict';
@@ -364,6 +364,21 @@ assert.ok(patchYaml.includes("'@deepseek-ai/dsh-tool-fs-search'"), 'pure-fs 组�
 const fsSearchCount = (patchYaml.match(/dsh-tool-fs-search/g) || []).length;
 assert.ok(fsSearchCount >= 5, `五个预设的 pure-fs 组均须挂载 fs-search（实际 ${fsSearchCount} 处）`);
 assert.match(patchYamlEffective, /`glob`/, '协作准则应说明 glob 查找（fs-search 已挂载）');
+
+// 主预设显示名改为「文本模式」，不得残留旧名
+assert.match(patchYamlEffective, /name:\s*文本模式/, '主预设显示名必须为 文本模式');
+assert.doesNotMatch(patchYamlEffective, /写作协作模式/, '不得残留旧预设名 写作协作模式');
+
+// 联网检索：五个预设均挂载 tool-web，fetch 开启且搜索超时 60 秒
+const webToolMounts = (patchYaml.match(/dsh-tool-web/g) || []).length;
+assert.ok(webToolMounts >= 5, `五个预设均须挂载 dsh-tool-web（实际 ${webToolMounts} 处）`);
+assert.match(patchYamlEffective, /fetch:\s*true[\r\n]+\s*searchTimeoutMs:\s*60000/, 'tool-web 必须开启 fetch: true 且 searchTimeoutMs: 60000');
+
+// 技能加载：五个预设均挂载 skill-filesystem 与 tool-skill
+const skillFsMounts = (patchYaml.match(/dsh-skill-filesystem/g) || []).length;
+const toolSkillMounts = (patchYaml.match(/dsh-tool-skill/g) || []).length;
+assert.ok(skillFsMounts >= 5, `五个预设均须挂载 dsh-skill-filesystem（实际 ${skillFsMounts} 处）`);
+assert.ok(toolSkillMounts >= 5, `五个预设均须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
 
 // 校验 4 个直选预设行已声明且默认 disabled: true
 const directPresets = ['preset-writing-pro', 'preset-writing-play', 'preset-writing-rp', 'preset-writing-pure'];
