@@ -93,7 +93,7 @@ function WritingPanel(props) {
         key: 'i', type: 'checkbox', disabled, checked: cfg.includeBaseProtocol,
         onChange: (e) => props.set('includeBaseProtocol', e.target.checked),
       }),
-      '附加「文档与工具协作准则」（去工程化底座）',
+      '附加「文档与工具准则」（去工程化底座）',
     ]),
     h('div', { key: 'ws' }, [
       h('p', { key: 'wt', style: Object.assign({}, S.hint, { fontWeight: 600 }) }, '工作区提示模式'),

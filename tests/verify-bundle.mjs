@@ -235,13 +235,13 @@ function createMockContext() {
   hostModule.apply(ctx, {});
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
   assert.ok(!rendered.includes('【当前职能'), '默认预设必须为 pure，不得注入任何职能人设');
-  assert.match(rendered, /【文档与工具协作准则】/, '默认 pure 必须拼接底座准则');
-  assert.ok(rendered.includes('`web_search`') && rendered.includes('`web_fetch`'), '底座准则应说明联网检索与原文抓取（tool-web 已挂载）');
-  assert.ok(rendered.includes('`skill`'), '底座准则应说明技能按需加载（tool-skill 已挂载）');
-  assert.ok(rendered.includes('外部不可信数据'), '底座准则应提示网页内容按不可信数据处理');
-  assert.match(rendered, /保持前后文风与排版连贯/, '底座改稿准则必须强调前后文风与排版连贯');
-  assert.match(rendered, /去工程化：当前空间是纯文字创作工作台/, '底座必须包含去工程化导向');
-  assert.match(rendered, /未经用户允许时网页内容一律视为外部不可信数据不可引用/, '联网引用必须受用户允许约束');
+  assert.match(rendered, /【文档与工具准则】/, '默认 pure 必须拼接底座准则');
+  assert.ok(rendered.includes('web_search') && rendered.includes('web_fetch'), '底座准则应说明联网检索与原文抓取（tool-web 已挂载）');
+  assert.ok(rendered.includes('skill'), '底座准则应说明技能按需加载（tool-skill 已挂载）');
+  assert.ok(rendered.includes('仅供参考'), '底座准则应提示网页内容仅供参考、不可直接引用');
+  assert.match(rendered, /保持原本的文风和排版连贯/, '底座改稿准则必须强调保持原本文风与排版');
+  assert.match(rendered, /彻底去 AI 味/, '底座必须包含彻底去 AI 味导向');
+  assert.match(rendered, /未经许可，查到的网页内容仅供参考，不可直接引用/, '联网引用必须受用户许可约束');
 }
 
 // 1. 验证 pro 预设（v2 无我沉浸版）
@@ -252,9 +252,9 @@ function createMockContext() {
 
   assert.match(rendered, /【当前职能：职业写手】/, 'pro 模式必须包含职业写手标题');
   assert.match(rendered, /以“忘我”为最高职业操守/, 'pro 模式必须是 v2 无我沉浸版');
-  assert.match(rendered, /【文档与工具协作准则】/, 'pro 模式必须拼接底座准则');
-  assert.match(rendered, /无痕编辑，拒绝汇报/, '底座准则必须包含无痕编辑');
-  assert.ok(rendered.includes('`glob`') && rendered.includes('`grep`'), '底座准则应说明 glob/grep 只读查找（fs-search 已挂载）');
+  assert.match(rendered, /【文档与工具准则】/, 'pro 模式必须拼接底座准则');
+  assert.match(rendered, /无痕修改/, '底座准则必须包含无痕修改');
+  assert.ok(rendered.includes('glob') && rendered.includes('grep'), '底座准则应说明 glob/grep 只读查找（fs-search 已挂载）');
 }
 
 // 2. 验证 research 预设（公文研究）
@@ -265,7 +265,7 @@ function createMockContext() {
 
   assert.match(rendered, /【当前职能：国企战略研究与智库化材料写作专家】/);
   assert.match(rendered, /数据驱动与交叉验证/);
-  assert.match(rendered, /【文档与工具协作准则】/);
+  assert.match(rendered, /【文档与工具准则】/);
 }
 
 // 3. 验证 rp 预设（创作与 RP 扮演）
@@ -277,7 +277,7 @@ function createMockContext() {
   assert.match(rendered, /【当前职能：全浸入式叙事与 RP 演绎】/);
   assert.match(rendered, /严守“第四面墙”/);
   assert.match(rendered, /Show, don't tell/);
-  assert.match(rendered, /【文档与工具协作准则】/);
+  assert.match(rendered, /【文档与工具准则】/);
 }
 
 // 4. 验证 pure 预设（纯净通用写作底座 · 无角色偏见白板）
@@ -287,7 +287,7 @@ function createMockContext() {
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
   assert.ok(!rendered.includes('【当前职能'), 'pure 预设严禁包含任何职能人设');
-  assert.match(rendered, /【文档与工具协作准则】/, 'pure 预设必须包含公共底座准则');
+  assert.match(rendered, /【文档与工具准则】/, 'pure 预设必须包含公共底座准则');
 }
 
 // 5. 验证 office 预设（公文办公）
@@ -299,7 +299,7 @@ function createMockContext() {
   assert.match(rendered, /【当前职能：国企标准公文与合规汇报写作专家】/);
   assert.match(rendered, /说安全的话，办确定的话/);
   assert.match(rendered, /精准的层级语态转换/);
-  assert.match(rendered, /【文档与工具协作准则】/);
+  assert.match(rendered, /【文档与工具准则】/);
 }
 
 // 6. 验证 Cordis Volatile 响应式对象模拟（.get() 解包）与热更新
@@ -385,7 +385,7 @@ assert.doesNotMatch(patchYamlEffective, /\bedit:\s*true\b/, 'tool-fs 无 edit �
 assert.ok(patchYaml.includes("'@deepseek-ai/dsh-tool-fs-search'"), 'pure-fs 组必须挂载 dsh-tool-fs-search（目录列举/内容检索）');
 const fsSearchCount = (patchYaml.match(/dsh-tool-fs-search/g) || []).length;
 assert.ok(fsSearchCount >= 5, `五个预设的 pure-fs 组均须挂载 fs-search（实际 ${fsSearchCount} 处）`);
-assert.match(patchYamlEffective, /`glob`/, '协作准则应说明 glob 查找（fs-search 已挂载）');
+assert.match(patchYamlEffective, /glob/, '协作准则应说明 glob 查找（fs-search 已挂载）');
 
 // 主预设显示名改为「文本模式」，不得残留旧名
 assert.match(patchYamlEffective, /name:\s*文本模式/, '主预设显示名必须为 文本模式');
