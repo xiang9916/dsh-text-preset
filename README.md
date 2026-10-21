@@ -6,7 +6,7 @@
 
 **极简介绍**：船板自用 DSH 写作工作台，砍掉 DSH 所有系统提示（接近极简模式），同时比极简模式增加贴合写作全流程的本地工具集（读写改、只读查找、可恢复文件整理、Word 稿件进出），添加情境代入写作人设，帮助 Agent 更好代入。
 
-**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。代码基线为上游 **v0.3.0**；本仓库版本号自 **0.3.1** 起独立演进，与上游 0.3.0 不存在“版本落后”关系。
+**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。代码基线为上游 **v0.3.0**；本仓库版本号自 **0.2.1** 起独立演进，与上游 0.3.0 不存在“版本落后”关系。
 
 插件本身不具备破限和风格指定效果，破限和风格指定需要用户在工作区添加世界观和写作风格资料、伪上下文；插件预设起到的作用，是帮助 Agent 更好地接受和理解你的设定，就像药引子。
 
@@ -47,7 +47,7 @@ dsh plugin --profile web add dsh-text-preset
 dsh web
 ```
 
-- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.3.1`
+- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.2.1`
 - **未全局安装 `dsh` CLI**：将上面的 `dsh` 替换为 `npx @deepseek-ai/dsh`。
 
 ### 2. GitHub Release（tgz）
@@ -66,7 +66,7 @@ npx @deepseek-ai/dsh plugin --profile web add https://github.com/xiang9916/dsh-t
 
 ```sh
 npm pack
-dsh plugin --profile web add ./dsh-text-preset-0.3.1.tgz
+dsh plugin --profile web add ./dsh-text-preset-0.2.1.tgz
 ```
 
 也可以直接运行仓库自带的注册脚本（以 symlink 方式挂进桌面版 profile，带备份、可重复执行，改完源码无需重新打包）：

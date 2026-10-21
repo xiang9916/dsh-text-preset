@@ -89,6 +89,11 @@ assert.equal(
   'pure,office,research,rp,pro',
   '预设面板顺序必须为 pure → office → research → rp → pro',
 );
+// 客户端内嵌提示词不得被构建缩进污染（历史 bug：每行前缀 \t\t 进入提示词正文）
+assert.ok(
+  Array.from(clientExports.PRESET_OPTIONS).every((o) => !/\t/.test(o.rolePrompt || '')),
+  '客户端内嵌人设提示词不得包含制表符',
+);
 
 const registered = [];
 const effects = [];

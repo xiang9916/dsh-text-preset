@@ -1,6 +1,6 @@
 {
   "name": "dsh-text-preset",
-  "version": "0.3.1",
+  "version": "0.2.1",
   "type": "module",
   "engines": {
     "dsh": ">=0.2.1-rc.2 <0.3.0"

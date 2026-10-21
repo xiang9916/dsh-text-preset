@@ -12,7 +12,9 @@ const presets = readFileSync(join(root, 'dist/presets.js'), 'utf8')
 const panel = readFileSync(join(root, 'src/client/panel.js'), 'utf8')
   .replace('/*__PRESETS__*/', () => presets);
 
-const body = panel.split('\n').map((l) => (l ? '\t\t' + l : l)).join('\n');
+// 不再逐行加制表符缩进：panel 内嵌的 presets 含多行模板字符串，
+// 前缀缩进会变成提示词内容本身（历史 bug：系统提示词里出现大量 \t\t）。
+const body = panel;
 const out = `window.__ModuleLoader__.load({
 \tid: ${JSON.stringify(ID)},
 \tfactory: (require) => {
