@@ -1,7 +1,10 @@
 {
   "name": "dsh-text-preset",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "type": "module",
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
   "description": "DeepSeek Harness (DSH) 纯净写作协作预设插件（fork 自 chuanban-dsh-writingset）",
   "main": "./dist/index.js",
   "types": "./src/index.ts",

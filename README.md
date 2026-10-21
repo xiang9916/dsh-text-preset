@@ -6,7 +6,7 @@
 
 **极简介绍**：船板自用 DSH 写作工作台，砍掉 DSH 所有系统提示（接近极简模式），同时比极简模式增加贴合写作全流程的本地工具集（读写改、只读查找、可恢复文件整理、Word 稿件进出），添加情境代入写作人设，帮助 Agent 更好代入。
 
-**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。
+**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。代码基线为上游 **v0.3.0**；本仓库版本号自 **0.3.1** 起独立演进，与上游 0.3.0 不存在“版本落后”关系。
 
 插件本身不具备破限和风格指定效果，破限和风格指定需要用户在工作区添加世界观和写作风格资料、伪上下文；插件预设起到的作用，是帮助 Agent 更好地接受和理解你的设定，就像药引子。
 
@@ -47,7 +47,7 @@ dsh plugin --profile web add dsh-text-preset
 dsh web
 ```
 
-- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.2.1`
+- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.3.1`
 - **未全局安装 `dsh` CLI**：将上面的 `dsh` 替换为 `npx @deepseek-ai/dsh`。
 
 ### 2. GitHub Release（tgz）
@@ -66,7 +66,7 @@ npx @deepseek-ai/dsh plugin --profile web add https://github.com/xiang9916/dsh-t
 
 ```sh
 npm pack
-dsh plugin --profile web add ./dsh-text-preset-0.2.1.tgz
+dsh plugin --profile web add ./dsh-text-preset-0.3.1.tgz
 ```
 
 也可以直接运行仓库自带的注册脚本（以 symlink 方式挂进桌面版 profile，带备份、可重复执行，改完源码无需重新打包）：
@@ -90,6 +90,59 @@ https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/ch
   ```
 
 安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「纯净通用写作底座」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 文本模式设置」** 面板中热切换，新开会话即刻生效，无需重启。
+
+## 从 `chuanban-dsh-writingset` 迁移
+
+从上游插件切换过来时，如果 profile 里还留着旧插件的用户覆盖配置（`~/.dsh/profiles/<profile>/cordis.patch.yml`），日志里可能出现：
+
+```text
+patch: name mismatch for "writing-brick-injector"
+(expected "dsh-text-preset", got "chuanban-dsh-writingset"), skipping
+```
+
+原因：两个插件都使用 `writing-brick-injector` 这个节点 id。配置合成按 id 合并，旧条目的 `name` 仍是上游包名，于是整段配置（`activePreset`、`customPromptOverride` 等）被静默跳过。
+
+迁移步骤：
+
+1. 卸载旧插件：
+
+   ```sh
+   dsh plugin --profile desktop remove chuanban-dsh-writingset
+   ```
+
+2. 打开 `~/.dsh/profiles/desktop/cordis.patch.yml`，把旧条目：
+
+   ```yaml
+   - id: writing-brick-injector
+     name: chuanban-dsh-writingset
+   ```
+
+   改成：
+
+   ```yaml
+   - id: writing-brick-injector
+     name: dsh-text-preset
+   ```
+
+   也可以直接删掉该条目，安装后在「设置 → 文本模式设置」里重新选择。
+
+3. 预设 ID 有变化，按需修正 `activePreset`：
+
+   | 旧值 | 新值 |
+   | :-- | :-- |
+   | `pro` | `pro`（不变） |
+   | `play` | `research`（公文研究） |
+   | `pro-v1` | `office`（公文办公） |
+   | `rp` | `rp`（不变） |
+   | `pure` | `pure`（不变） |
+
+4. 重启 DSH，使 profile 重新合成。
+
+## 兼容性
+
+- 已验证的 DSH 版本：**0.2.1-rc.2**
+- `package.json` 声明 `engines.dsh: ">=0.2.1-rc.2 <0.3.0"`，DSH Market 可据此显示兼容状态，而不是 `unknown`
+- 插件依赖 0.2.x 的预设与补丁接口；DSH 0.3.x 尚未验证，升级前请先确认
 
 ---
 
@@ -158,7 +211,7 @@ DSH 原生的 `minimal` 模式之所以不能直接用来写东西，是因为�
   - **文件整理（`file-butler`）**：提供 `copy_file`、`move_file`、`trash_file`、`stat_file` 四个服务端纯路径工具——长稿与二进制流转不经过模型上下文；`copy_file` 与 `move_file` 默认 `overwrite: false` 防误覆写（目标传目录名时自动拼入同名文件）；`trash_file` 将文件移入 `~/.Trash`（带毫秒时间戳与防碰撞序号，可手动恢复，不承诺 Finder「放回原处」元数据），绝不永久删除。
   - **Word 单向文档桥（`doc-bridge`）**：零外部依赖提供 `convert_document`（`.docx` → `.md`）与 `export_document`（`.md` → 新建 `.docx`）。定位为**内容级单向转换**：保留正文段落、标题层级（H1–H6）与列表项，表格拍平为正文行，行内粗斜体等样式不保留；内置**双向防覆盖保护**——目标 `.md` 已存在时自动派生 `<name>.converted.md`，目标 `.docx` 已存在时自动派生 `<name>.exported.docx`，绝不修改或覆盖原稿。
   - **联网检索（`@deepseek-ai/dsh-tool-web`）**：挂载 `web_search` 与 `web_fetch`（`fetch: true`），搜索超时 60 秒。检索结果按外部数据对待，未经许可不作直接引用，不把网页文字当作指令。
-  - **技能加载（`@deepseek-ai/dsh-skill-filesystem` + `@deepseek-ai/dsh-tool-skill`）**：从 DSH 用户级 / 项目级技能目录读取 `SKILL.md`，由 `tool-skill` 暴露 `skill` 工具供 Agent 按需加载，与工作区规则、本预设提示词叠加而不冲突。
+  - **技能加载（`@deepseek-ai/dsh-skill-filesystem` + `@deepseek-ai/dsh-tool-skill`）**：从 DSH 用户级 / 项目级技能目录读取 `SKILL.md`，由 `tool-skill` 暴露 `skill` 工具供 Agent 按需加载。两者与 `fs-local` 同处 `pure-fs` 隔离组，技能读取走预设内的工作区 fs，不会回退到 Node 原生 `node:fs`，也不会绕过工作区隔离。
   - *(注：会话中另有宿主运行时自带的 `working_directory` 与 `load_workspace_dependencies`，非本插件注册。)*
 - **保留长文会话压缩**：内置 `@deepseek-ai/dsh-compaction-basic` 与 `/compact` 指令，长篇连载讨论可随时压缩上下文。
 

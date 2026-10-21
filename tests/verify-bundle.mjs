@@ -44,6 +44,8 @@ for (const relPath of requiredFiles) {
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8'));
 assert.equal(pkg.name, 'dsh-text-preset', 'package.json name 必须为 dsh-text-preset');
 assert.match(pkg.version, /^\d+\.\d+\.\d+$/, 'package.json version 必须为合法 semver');
+assert.ok(pkg.engines?.dsh, 'package.json 必须声明 engines.dsh（兼容性检查）');
+assert.match(pkg.engines.dsh, /0\.2\.1-rc\.2/, 'engines.dsh 必须覆盖已验证的 0.2.1-rc.2');
 assert.equal(pkg.type, 'module');
 assert.ok(pkg.exports['.'], 'package.json 缺少 . 导出');
 assert.ok(pkg.exports['./presets'], 'package.json 缺少 ./presets 导出');
@@ -401,6 +403,11 @@ const skillFsMounts = (patchYaml.match(/dsh-skill-filesystem/g) || []).length;
 const toolSkillMounts = (patchYaml.match(/dsh-tool-skill/g) || []).length;
 assert.ok(skillFsMounts >= 5, `五个预设均须挂载 dsh-skill-filesystem（实际 ${skillFsMounts} 处）`);
 assert.ok(toolSkillMounts >= 5, `五个预设均须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
+// 技能节点必须位于 pure-fs 隔离组内（14 空格缩进），不得作为组外兄弟节点
+assert.doesNotMatch(patchYaml, /^ {10}- id: skill-filesystem$/m, 'skill-filesystem 不得挂在 pure-fs 组外');
+assert.doesNotMatch(patchYaml, /^ {10}- id: tool-skill$/m, 'tool-skill 不得挂在 pure-fs 组外');
+assert.ok((patchYaml.match(/^ {14}- id: skill-filesystem$/gm) || []).length >= 5, '五个预设均须在 pure-fs 组内挂载 skill-filesystem');
+assert.ok((patchYaml.match(/^ {14}- id: tool-skill$/gm) || []).length >= 5, '五个预设均须在 pure-fs 组内挂载 tool-skill');
 
 // 校验 4 个直选预设行已声明且默认 disabled: true
 const directPresets = ['preset-writing-pro', 'preset-writing-research', 'preset-writing-rp', 'preset-writing-pure'];

@@ -59,10 +59,10 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -141,10 +141,10 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -221,10 +221,10 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -295,10 +295,10 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -366,10 +366,10 @@
                 name: 'dsh-text-preset/file-butler'
               - id: doc-bridge
                 name: 'dsh-text-preset/doc-bridge'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
