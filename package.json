@@ -1,0 +1,73 @@
+{
+  "name": "dsh-text-preset",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "DeepSeek Harness (DSH) 纯净写作协作预设插件（fork 自 chuanban-dsh-writingset）",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./presets": {
+      "types": "./src/presets.ts",
+      "default": "./dist/presets.js"
+    },
+    "./client": {
+      "default": "./dist/client.js"
+    },
+    "./file-butler": {
+      "types": "./src/file-butler.ts",
+      "default": "./dist/file-butler.js"
+    },
+    "./doc-bridge": {
+      "types": "./src/doc-bridge.ts",
+      "default": "./dist/doc-bridge.js"
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node ./scripts/build-client.mjs",
+    "test": "node ./tests/verify-bundle.mjs",
+    "switch": "node ./scripts/switch-preset.mjs",
+    "prepublishOnly": "node ./scripts/build-client.mjs && node ./tests/verify-bundle.mjs"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "writing",
+    "storydesk",
+    "preset",
+    "text-preset"
+  ],
+  "author": "xiang9916",
+  "contributors": [
+    "船板 <https://github.com/Anarcadia> (upstream: chuanban-dsh-writingset)"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiang9916/dsh-text-preset.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xiang9916/dsh-text-preset/issues"
+  },
+  "homepage": "https://github.com/xiang9916/dsh-text-preset#readme",
+  "files": [
+    "dist",
+    "cordis.patch.yml",
+    "src"
+  ]
+}
