@@ -9,7 +9,7 @@ const h = react.createElement;
 /*__PRESETS__*/
 
 const NS = 'writing-brick-injector';
-const PRESET_ORDER = ['pure', 'pro-v1', 'play', 'rp', 'pro'];
+const PRESET_ORDER = ['pure', 'office', 'research', 'rp', 'pro'];
 const OPTIONS = PRESET_ORDER.map((id) => WRITING_PRESET_BRICKS[id]);
 const MODE_ORDER = ['off', 'custom', 'workspace'];
 const MODES = {

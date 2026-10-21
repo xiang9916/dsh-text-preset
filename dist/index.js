@@ -81,14 +81,14 @@ const SchemaFactory = await loadSchemaFactory();
 
 export const Config = SchemaFactory.object({
   activePreset: SchemaFactory.union([
-    'pro',
-    'play',
-    'rp',
     'pure',
-    'pro-v1',
+    'office',
+    'research',
+    'rp',
+    'pro',
   ])
     .default('pure')
-    .description('当前激活的写作人设积木：pure(纯净底座·默认) / pro-v1(v1锋利版留档) / play(纯粹娱乐) / rp(创作与RP) / pro(职业写手v2)')
+    .description('当前激活的写作人设积木：pure(纯净底座·默认) / office(公文办公) / research(公文研究) / rp(创作与RP) / pro(职业写手v2)')
     .volatile(),
 
   includeBaseProtocol: SchemaFactory.boolean()

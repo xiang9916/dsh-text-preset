@@ -6,7 +6,7 @@
  * 用法：
  *   node scripts/switch-preset.mjs --list
  *   node scripts/switch-preset.mjs --show [presetId]
- *   node scripts/switch-preset.mjs <pro|play|rp|pure|pro-v1>
+ *   node scripts/switch-preset.mjs <pure|office|research|rp|pro>
  */
 
 import fs from 'node:fs';
@@ -50,8 +50,8 @@ DeepSeek Harness (DSH) 纯净写作协作预设切换工具
 
 可用预设 ID:
   pure     纯净通用写作底座（默认）
-  pro-v1   职业写手 v1（第一性原理锋利版 · 留档备选）
-  play     纯粹娱乐（随性脑洞与灵感共谋）
+  office   公文办公（国企标准公文与合规汇报）
+  research 公文研究（国企战略研究与智库化材料）
   rp       创作与 RP 扮演（全浸入式叙事与第四面墙）
   pro      职业写手（v2 无我沉浸版）
 `);

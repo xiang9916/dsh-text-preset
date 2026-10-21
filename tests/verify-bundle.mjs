@@ -84,8 +84,8 @@ assert.ok(clientExports.inject.includes('configForms') && clientExports.inject.i
 assert.equal(clientExports.PRESET_OPTIONS.length, 5, 'client 必须暴露 5 个预设选项');
 assert.equal(
   Array.from(clientExports.PRESET_OPTIONS, (o) => o.id).join(','),
-  'pure,pro-v1,play,rp,pro',
-  '预设面板顺序必须为 pure → pro-v1 → play → rp → pro',
+  'pure,office,research,rp,pro',
+  '预设面板顺序必须为 pure → office → research → rp → pro',
 );
 
 const registered = [];
@@ -257,14 +257,14 @@ function createMockContext() {
   assert.ok(rendered.includes('`glob`') && rendered.includes('`grep`'), '底座准则应说明 glob/grep 只读查找（fs-search 已挂载）');
 }
 
-// 2. 验证 play 预设（纯粹娱乐）
+// 2. 验证 research 预设（公文研究）
 {
   const ctx = createMockContext();
-  hostModule.apply(ctx, { activePreset: 'play', includeBaseProtocol: true });
+  hostModule.apply(ctx, { activePreset: 'research', includeBaseProtocol: true });
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
-  assert.match(rendered, /【当前职能：纯粹娱乐与灵感共谋】/);
-  assert.match(rendered, /天马行空时的共谋者/);
+  assert.match(rendered, /【当前职能：国企战略研究与智库化材料写作专家】/);
+  assert.match(rendered, /数据驱动与交叉验证/);
   assert.match(rendered, /【文档与工具协作准则】/);
 }
 
@@ -290,14 +290,15 @@ function createMockContext() {
   assert.match(rendered, /【文档与工具协作准则】/, 'pure 预设必须包含公共底座准则');
 }
 
-// 5. 验证 pro-v1 预设（留档备选：第一性原理锋利版）
+// 5. 验证 office 预设（公文办公）
 {
   const ctx = createMockContext();
-  hostModule.apply(ctx, { activePreset: 'pro-v1', includeBaseProtocol: true });
+  hostModule.apply(ctx, { activePreset: 'office', includeBaseProtocol: true });
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
-  assert.match(rendered, /【当前职能：第一性原理职业写手】/);
-  assert.match(rendered, /彻底服从创作第一性原理/);
+  assert.match(rendered, /【当前职能：国企标准公文与合规汇报写作专家】/);
+  assert.match(rendered, /说安全的话，办确定的话/);
+  assert.match(rendered, /精准的层级语态转换/);
   assert.match(rendered, /【文档与工具协作准则】/);
 }
 
@@ -326,12 +327,12 @@ function createMockContext() {
     promptChangeFired = true;
   });
 
-  dynamicPreset = 'play';
+  dynamicPreset = 'research';
   ctx.emit('loader/volatile-update');
 
   assert.ok(promptChangeFired, '监听到 volatile-update 时必须触发 system-prompt/change 事件');
   rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
-  assert.match(rendered, /【当前职能：纯粹娱乐与灵感共谋】/, '响应式读取必须自动返回更新后的预设');
+  assert.match(rendered, /【当前职能：国企战略研究与智库化材料写作专家】/, '响应式读取必须自动返回更新后的预设');
 }
 
 // 7. 验证 custom 模式（append）与 includeBaseProtocol=false
@@ -402,7 +403,7 @@ assert.ok(skillFsMounts >= 5, `五个预设均须挂载 dsh-skill-filesystem（�
 assert.ok(toolSkillMounts >= 5, `五个预设均须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
 
 // 校验 4 个直选预设行已声明且默认 disabled: true
-const directPresets = ['preset-writing-pro', 'preset-writing-play', 'preset-writing-rp', 'preset-writing-pure'];
+const directPresets = ['preset-writing-pro', 'preset-writing-research', 'preset-writing-rp', 'preset-writing-pure'];
 for (const pId of directPresets) {
   assert.ok(patchYaml.includes(`id: ${pId}`), `cordis.patch.yml 必须包含直选预设行 ${pId}`);
 }
@@ -419,25 +420,26 @@ console.log('\n[Test 4] 测试 scripts/switch-preset.mjs 命令行工具切换�
 // 1. 运行 --list 命令
 const listOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --list`, { encoding: 'utf-8' });
 assert.match(listOutput, /纯净通用写作底座（默认）/);
-assert.match(listOutput, /纯粹娱乐/);
+assert.match(listOutput, /公文研究/);
+assert.match(listOutput, /公文办公/);
 assert.match(listOutput, /创作与 RP 扮演/);
 assert.match(listOutput, /职业写手（v2 无我沉浸版）/);
-// 列表顺序必须为 pure → pro-v1 → play → rp → pro
-const listOrder = ['纯净通用写作底座（默认）', '职业写手 v1', '纯粹娱乐', '创作与 RP 扮演', '职业写手（v2 无我沉浸版）'];
+// 列表顺序必须为 pure → office → research → rp → pro
+const listOrder = ['纯净通用写作底座（默认）', '公文办公', '公文研究', '创作与 RP 扮演', '职业写手（v2 无我沉浸版）'];
 const listIndex = listOrder.map((s) => listOutput.indexOf(s));
 assert.ok(
   listIndex.every((v, i) => v >= 0 && (i === 0 || v > listIndex[i - 1])),
   `CLI 预设列表顺序不符合要求（实际位置：${listIndex.join(', ')}）`,
 );
 
-// 2. 切换为 play
-execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} play`, { encoding: 'utf-8' });
-const patchAfterPlay = fs.readFileSync(path.join(ROOT_DIR, 'cordis.patch.yml'), 'utf-8');
-assert.match(patchAfterPlay, /activePreset:\s*play/, '切换后 cordis.patch.yml 的 activePreset 必须更新为 play');
+// 2. 切换为 research
+execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} research`, { encoding: 'utf-8' });
+const patchAfterResearch = fs.readFileSync(path.join(ROOT_DIR, 'cordis.patch.yml'), 'utf-8');
+assert.match(patchAfterResearch, /activePreset:\s*research/, '切换后 cordis.patch.yml 的 activePreset 必须更新为 research');
 
 // 3. 运行 --show 验证预览输出
 const showOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --show`, { encoding: 'utf-8' });
-assert.match(showOutput, /【当前职能：纯粹娱乐与灵感共谋】/);
+assert.match(showOutput, /【当前职能：国企战略研究与智库化材料写作专家】/);
 
 // 4. 切回默认的 pure
 execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} pure`, { encoding: 'utf-8' });
