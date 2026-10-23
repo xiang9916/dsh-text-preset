@@ -388,41 +388,39 @@ assert.doesNotMatch(patchYamlEffective, /readImage/, 'tool-fs 无 readImage 开�
 assert.doesNotMatch(patchYamlEffective, /\bread:\s*true\b/, 'tool-fs 无 read 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bwrite:\s*true\b/, 'tool-fs 无 write 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bedit:\s*true\b/, 'tool-fs 无 edit 布尔开关，不得写入无效配置键');
-// 预设已挂载 tool-fs-search（glob/grep 只读查找），工具准则同步引用，且组内声明必须存在
+// 预设已挂载 tool-fs-search（glob/grep 只读查找），组内声明必须存在
 assert.ok(patchYaml.includes("'@deepseek-ai/dsh-tool-fs-search'"), 'pure-fs 组必须挂载 dsh-tool-fs-search（目录列举/内容检索）');
 const fsSearchCount = (patchYaml.match(/dsh-tool-fs-search/g) || []).length;
-assert.ok(fsSearchCount >= 5, `五个预设的 pure-fs 组均须挂载 fs-search（实际 ${fsSearchCount} 处）`);
-assert.match(patchYamlEffective, /glob/, '工具准则应说明 glob 查找（fs-search 已挂载）');
+assert.ok(fsSearchCount >= 1, `主预设的 pure-fs 组须挂载 fs-search（实际 ${fsSearchCount} 处）`);
 
 // 主预设显示名改为「文本模式」，不得残留旧名
 assert.match(patchYamlEffective, /name:\s*文本模式/, '主预设显示名必须为 文本模式');
 assert.doesNotMatch(patchYamlEffective, /写作协作模式/, '不得残留旧预设名 写作协作模式');
 
-// 联网检索：五个预设均挂载 tool-web，fetch 开启且搜索超时 60 秒
+// 联网检索：主预设挂载 tool-web，fetch 开启且搜索超时 60 秒
 const webToolMounts = (patchYaml.match(/dsh-tool-web/g) || []).length;
-assert.ok(webToolMounts >= 5, `五个预设均须挂载 dsh-tool-web（实际 ${webToolMounts} 处）`);
+assert.ok(webToolMounts >= 1, `主预设须挂载 dsh-tool-web（实际 ${webToolMounts} 处）`);
 assert.match(patchYamlEffective, /fetch:\s*true[\r\n]+\s*searchTimeoutMs:\s*60000/, 'tool-web 必须开启 fetch: true 且 searchTimeoutMs: 60000');
 
-// 技能加载：五个预设均挂载 skill-filesystem 与 tool-skill
+// 技能加载：主预设挂载 skill-filesystem 与 tool-skill
 const skillFsMounts = (patchYaml.match(/dsh-skill-filesystem/g) || []).length;
 const toolSkillMounts = (patchYaml.match(/dsh-tool-skill/g) || []).length;
-assert.ok(skillFsMounts >= 5, `五个预设均须挂载 dsh-skill-filesystem（实际 ${skillFsMounts} 处）`);
-assert.ok(toolSkillMounts >= 5, `五个预设均须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
+assert.ok(skillFsMounts >= 1, `主预设须挂载 dsh-skill-filesystem（实际 ${skillFsMounts} 处）`);
+assert.ok(toolSkillMounts >= 1, `主预设须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
 // 技能节点必须位于 pure-fs 隔离组内（14 空格缩进），不得作为组外兄弟节点
 assert.doesNotMatch(patchYaml, /^ {10}- id: skill-filesystem$/m, 'skill-filesystem 不得挂在 pure-fs 组外');
 assert.doesNotMatch(patchYaml, /^ {10}- id: tool-skill$/m, 'tool-skill 不得挂在 pure-fs 组外');
-assert.ok((patchYaml.match(/^ {14}- id: skill-filesystem$/gm) || []).length >= 5, '五个预设均须在 pure-fs 组内挂载 skill-filesystem');
-assert.ok((patchYaml.match(/^ {14}- id: tool-skill$/gm) || []).length >= 5, '五个预设均须在 pure-fs 组内挂载 tool-skill');
+assert.ok((patchYaml.match(/^ {14}- id: skill-filesystem$/gm) || []).length >= 1, '主预设须在 pure-fs 组内挂载 skill-filesystem');
+assert.ok((patchYaml.match(/^ {14}- id: tool-skill$/gm) || []).length >= 1, '主预设须在 pure-fs 组内挂载 tool-skill');
 
-// 校验 4 个直选预设行已声明且默认 disabled: true
-const directPresets = ['preset-writing-pro', 'preset-writing-research', 'preset-writing-rp', 'preset-writing-pure'];
-for (const pId of directPresets) {
-  assert.ok(patchYaml.includes(`id: ${pId}`), `cordis.patch.yml 必须包含直选预设行 ${pId}`);
+// 前台只保留「文本模式」一个预设，直选预设行必须全部移除
+const removedPresets = ['preset-writing-pro', 'preset-writing-research', 'preset-writing-rp', 'preset-writing-pure'];
+for (const pId of removedPresets) {
+  assert.ok(!patchYaml.includes(`id: ${pId}`), `直选预设行 ${pId} 应已移除`);
 }
-const disabledCount = (patchYaml.match(/disabled:\s*true/g) || []).length;
-assert.ok(disabledCount >= 4, '4 个直选预设行必须默认标记 disabled: true');
+assert.doesNotMatch(patchYaml, /disabled:\s*true/, '不得再保留任何直选预设行（disabled: true）');
 
-console.log('✓ [Test 3 通过] cordis.patch.yml 声明式架构、净化隔离参数与直选预设行完整合规。');
+console.log('✓ [Test 3 通过] cordis.patch.yml 声明式架构、净化隔离参数与单预设结构完整合规。');
 
 // ============================================================================
 // 测试 4：CLI 切换工具集成测试
@@ -651,7 +649,7 @@ console.log('✓ [Test 5 通过] 三模式矩阵（off/custom-append/custom-repl
   // yml：五个 pure-fs 组均挂载 file-butler 行
   const patchText = fs.readFileSync(path.join(__dirname, '../cordis.patch.yml'), 'utf8');
   const butlerMounts = (patchText.match(/dsh-text-preset\/file-butler/g) || []).length;
-  assert.ok(butlerMounts >= 5, `五个预设的 pure-fs 组均须挂载 file-butler（实际 ${butlerMounts} 处）`);
+  assert.ok(butlerMounts >= 1, `主预设的 pure-fs 组须挂载 file-butler（实际 ${butlerMounts} 处）`);
   // 内联准则块缩进防回归：字面量块内的准则行必须保持块内缩进，顶格行会终止 YAML 块
   assert.ok(!/^(?:\d)\. [^\n]/m.test(fs.readFileSync(path.join(__dirname, '../cordis.patch.yml'), 'utf8')), 'cordis.patch.yml 字面量块内不得出现顶格准则行（YAML 块提前终止）');
 
@@ -760,7 +758,7 @@ console.log('✓ [Test 6 通过] file-butler 四工具注册、真实文件系�
   // yml：五个 pure-fs 组均挂载 doc-bridge 行
   const patchText = fs.readFileSync(path.join(__dirname, '../cordis.patch.yml'), 'utf8');
   const mounts = (patchText.match(/dsh-text-preset\/doc-bridge/g) || []).length;
-  assert.ok(mounts >= 5, `五个预设的 pure-fs 组均须挂载 doc-bridge（实际 ${mounts} 处）`);
+  assert.ok(mounts >= 1, `主预设的 pure-fs 组须挂载 doc-bridge（实际 ${mounts} 处）`);
 
   fs.rmSync(dir, { recursive: true, force: true });
 }
