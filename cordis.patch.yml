@@ -1,7 +1,7 @@
 # DeepSeek Harness (DSH) 纯净文本模式插件声明式补丁
 # 默认将前台预设指向「文本模式」，并通过 writing-brick-injector 动态注入所选初始预设
 #
-# 纯净工具面说明（DSH 0.2.0-rc.2 源码核验）：
+# 纯净工具面说明（DSH 0.2.1-rc.3 源码核验；rc.2 → rc.3 仅版本号变动，接口无差异）：
 # - @deepseek-ai/dsh-tool-fs 的 Config 仅接受 readLimit / readMaxLineLength /
 #   readMaxBytes / readStreamMinSize 四个数值参数，不存在 read/write/edit/readImage
 #   布尔开关；read/write/edit 随插件挂载整组注册，无需也无法逐个开关。
