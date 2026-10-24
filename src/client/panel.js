@@ -9,6 +9,7 @@ const h = react.createElement;
 /*__PRESETS__*/
 
 const NS = 'writing-brick-injector';
+const BUNDLE_ID = 'dsh-text-preset';
 const PRESET_ORDER = ['pure', 'office', 'research', 'rp', 'pro'];
 const OPTIONS = PRESET_ORDER.map((id) => WRITING_PRESET_BRICKS[id]);
 const MODE_ORDER = ['off', 'custom', 'workspace'];
@@ -20,7 +21,7 @@ const MODES = {
 
 const S = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 760, color: 'var(--dsw-alias-label-primary)' },
-  title: { margin: 0, fontSize: 18, fontWeight: 600 },
+  title: { margin: 0, fontSize: 14, fontWeight: 500, lineHeight: '20px' },
   hint: { margin: 0, fontSize: 13, lineHeight: '20px', color: 'var(--dsw-alias-label-tertiary)' },
   card: (active) => ({
     display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left', cursor: 'pointer', font: 'inherit',
@@ -54,11 +55,6 @@ function WritingPanel(props) {
   const disabled = !state.writable || state.status !== 'ready';
   const [draft, setDraft] = react.useState(null);
   const text = draft === null ? cfg.customPromptOverride : draft;
-  const modeName = { off: '初始纯净', custom: '自定义填写', workspace: '工作区识别' }[cfg.workspacePromptMode];
-
-  if (props.view === 'summary') {
-    return '文本模式的初始预设（当前：' + WRITING_PRESET_BRICKS[cfg.activePreset].name + ' · 工作区提示：' + modeName + '）';
-  }
 
   const currentBase = () => assembleWritingPrompt({
     activePreset: cfg.activePreset,
@@ -76,7 +72,7 @@ function WritingPanel(props) {
   });
 
   return h('div', { style: S.wrap }, [
-    h('h2', { key: 'h', style: S.title }, '文本模式设置'),
+    h('h3', { key: 'h', style: S.title }, '文本模式设置'),
     h('p', { key: 'p', style: S.hint },
       '选择聊天窗底部「文本模式」预设实际注入的职能人设。修改后即时生效，新开会话使用新的预设。'),
     disabled ? h('p', { key: 'd', style: S.hint }, '配置服务暂不可用（只读或未就绪）。') : null,
@@ -161,27 +157,15 @@ function apply(ctx) {
     set: (field, v) => form.set(field, v),
   });
 
-  ctx.effect(() => ctx.configForms.whileServed([NS], () => {
-    const offs = [
-      // 设置弹窗（Cmd+,）左侧一级菜单
-      ctx.slots.inject('settings.section', () => ctx.slots.register({
-        name: 'settings.section',
-        id: 'writing-preset',
-        order: 25,
-        label: () => '文本模式设置',
-        inject: injected,
-      }, WritingPanel)),
-      // 插件页卡片
-      ctx.slots.inject('plugins.item', () => ctx.slots.register({
-        name: 'plugins.item',
-        id: 'writing-preset',
-        order: 50,
-        label: () => '文本模式设置',
-        inject: injected,
-      }, WritingPanel)),
-    ];
-    return () => { for (const off of offs) off(); };
-  }), 'dsh-text-preset: settings page');
+  // 配置页挂在 DSH 侧栏「插件」页的插件包详情页上：plugins.bundle.config 以组合包包名为键，
+  // 表单显示在包描述与组件行之间。DSH 0.2.1 起设置弹窗（Cmd+,）只保留只读插件清单，
+  // 因此不再注册 settings.section。
+  ctx.effect(() => ctx.configForms.whileServed([NS], () =>
+    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+      name: 'plugins.bundle.config',
+      key: BUNDLE_ID,
+      inject: injected,
+    }, WritingPanel))), 'dsh-text-preset: plugin bundle config page');
 }
 
 exports.apply = apply;

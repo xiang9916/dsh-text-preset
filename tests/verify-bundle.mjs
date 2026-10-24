@@ -107,17 +107,51 @@ const mockClientCtx = {
   },
   slots: {
     inject: (name, fn) => fn(),
-    register: (opts) => { registered.push(opts); return () => {}; },
+    register: (opts, component) => { registered.push({ ...opts, component }); return () => {}; },
   },
   effect: (fn) => effects.push(fn()),
 };
 clientExports.apply(mockClientCtx);
-const sectionEntry = registered.find((o) => o.name === 'settings.section');
-assert.ok(sectionEntry, '必须向 settings.section 注册');
-assert.equal(sectionEntry.id, 'writing-preset');
-assert.equal(sectionEntry.order, 25);
-assert.equal(sectionEntry.label(), '文本模式设置');
-assert.ok(registered.find((o) => o.name === 'plugins.item'), '必须向 plugins.item 注册');
+
+// 配置页只挂在侧栏「插件」页的插件包详情页（plugins.bundle.config）；
+// 设置弹窗（settings.section）与官方插件卡片（plugins.item）都不再注册。
+assert.equal(registered.length, 1, '客户端必须只注册一处配置入口');
+const pageEntry = registered[0];
+assert.equal(pageEntry.name, 'plugins.bundle.config', '配置页必须注册到 plugins.bundle.config');
+assert.equal(pageEntry.key, 'dsh-text-preset', 'plugins.bundle.config 的 key 必须是组合包包名');
+assert.equal(typeof pageEntry.component, 'function', '槽位必须携带配置面板组件');
+assert.equal(typeof pageEntry.inject, 'function', '槽位必须携带注入面');
+assert.ok(!clientSource.includes("'settings.section'"), 'dist/client.js 不得再注册 settings.section');
+assert.ok(!clientSource.includes("'plugins.item'"), 'dist/client.js 不得再注册 plugins.item');
+
+// 插件页以 view: 'page' 渲染配置页：冒烟渲染一次，确认标题、五个预设与工作区模式都在。
+const collectText = (node, out) => {
+  if (node === null || node === undefined || typeof node === 'boolean') return out;
+  if (typeof node === 'string' || typeof node === 'number') { out.push(String(node)); return out; }
+  if (Array.isArray(node)) { for (const child of node) collectText(child, out); return out; }
+  if (typeof node === 'object' && Array.isArray(node.children)) collectText(node.children, out);
+  return out;
+};
+const pageTree = pageEntry.component({
+  view: 'page',
+  useWritingForm: (selector) => selector({
+    status: 'ready',
+    writable: true,
+    value: {
+      activePreset: 'pure',
+      includeBaseProtocol: true,
+      workspacePromptMode: 'off',
+      customPromptBehavior: 'append',
+      customPromptOverride: '',
+    },
+  }),
+  set: () => {},
+});
+const pageText = collectText(pageTree, []).join('\n');
+assert.ok(pageText.includes('文本模式设置'), '配置页必须渲染「文本模式设置」标题');
+assert.ok(pageText.includes('纯净通用写作底座'), '配置页必须列出预设选项');
+assert.ok(pageText.includes('工作区提示模式'), '配置页必须渲染工作区提示模式分区');
+assert.ok(pageText.includes('System Prompt 预览'), '配置页必须渲染提示词预览');
 
 
 console.log('✓ [Test 1 通过] 所有关键文件与 ESM 模块导出接口验证完毕。');

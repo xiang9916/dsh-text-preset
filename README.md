@@ -57,7 +57,7 @@ dsh web
 https://github.com/xiang9916/dsh-text-preset/releases/latest/download/dsh-text-preset.tgz
 ```
 
-DSH Desktop 打开 **设置 → 插件**，粘贴上面的 URL 即可；CLI 用法：
+DSH Desktop 打开侧栏 **插件 → 添加插件**，粘贴上面的 URL 即可；CLI 用法：
 
 ```sh
 npx @deepseek-ai/dsh plugin --profile web add https://github.com/xiang9916/dsh-text-preset/releases/latest/download/dsh-text-preset.tgz
@@ -90,7 +90,7 @@ https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/ch
   dsh plugin --profile web add https://github.com/Anarcadia/chuanban-dsh-writingset/releases/latest/download/chuanban-dsh-writingset.tgz https://github.com/Anarcadia/chuanban-dsh-theme/releases/latest/download/chuanban-dsh-theme.tgz
   ```
 
-安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「纯净通用写作底座」预设）。所有职能切换与工作区规则注入均可在 **「设置 → 文本模式设置」** 面板中热切换，新开会话即刻生效，无需重启。
+安装后，前台预设选择器默认切入 **「文本模式」** （初始激活「纯净通用写作底座」预设）。所有职能切换与工作区规则注入均可在 **侧栏「插件」→ 已安装插件 → `dsh-text-preset`** 的配置页里热切换，新开会话即刻生效，无需重启。
 
 ## 从 `chuanban-dsh-writingset` 迁移
 
@@ -125,7 +125,7 @@ patch: name mismatch for "writing-brick-injector"
      name: dsh-text-preset
    ```
 
-   也可以直接删掉该条目，安装后在「设置 → 文本模式设置」里重新选择。
+   也可以直接删掉该条目，安装后在**侧栏「插件」→ `dsh-text-preset`** 的配置页里重新选择。
 
 3. 预设 ID 有变化，按需修正 `activePreset`：
 
@@ -149,7 +149,9 @@ patch: name mismatch for "writing-brick-injector"
 
 ## 快速上手：用「三层提示层」搭好你的写作台
 
-打开 DSH **设置（`Cmd + ,`）→ 文本模式设置**（或左侧 **插件 → `dsh-text-preset`**），面板由上至下对应了这套**三层提示层**的组装逻辑：
+打开 DSH 侧栏 **插件 → 已安装插件 → `dsh-text-preset`**，配置页由上至下对应了这套**三层提示层**的组装逻辑：
+
+> DSH 0.2.1 起，插件的配置页统一放在侧栏「插件」里；`设置（Cmd + ,）→ 内置插件` 只保留只读的插件清单，不再承载本插件的设置。
 
 ### 第一、二层：去工程化协作基底 + 写作职能人设
 
@@ -191,7 +193,7 @@ patch: name mismatch for "writing-brick-injector"
      - 如果你切到 **`pro`（职业写手）** 写小说，建议在工作区放一份 `AGENTS.md`（写明你的文风要求与设定目录），并放好详细的**世界观设定文档**与**示例正文（让 Agent 作为旧稿参考或续写）**——“无我职业操守 + 工作区世界观 + 旧稿样本”三层叠在一起，才能真正把模型的注意力锁死在故事语境里。
 
 3. **自定义填写（`custom`）**
-   - **怎么工作**：直接在设置面板的文本框里手写第三层提示词，可选 **「追加在初始提示后（`append`）」**，或者点面板上的「用当前初始提示填充编辑」按钮切到 **「整段替换初始提示（`replace`）」** 直接改写默认提示层。
+   - **怎么工作**：直接在配置页的文本框里手写第三层提示词，可选 **「追加在初始提示后（`append`）」**，或者点面板上的「用当前初始提示填充编辑」按钮切到 **「整段替换初始提示（`replace`）」** 直接改写默认提示层。
    - **什么时候用**：不想在本地文件夹里建 `AGENTS.md`，但想临时加几条人设、文风要求或直接微调内置提示词时使用。
 
 ---
@@ -236,9 +238,9 @@ npm test
 
 ## 停用与卸载
 
-- **临时切回官方编程模式**：不用卸载，直接在聊天输入框左下角的预设选择器切回官方预设，或在「设置 → 插件」中关掉本插件开关即可。
+- **临时切回官方编程模式**：不用卸载，直接在聊天输入框左下角的预设选择器切回官方预设，或在**侧栏「插件」→ `dsh-text-preset`** 详情页关掉本插件开关即可。
 - **卸载插件**：
-  - **DSH Desktop**：设置 → 插件 → 找到 `dsh-text-preset` 点击卸载。
+  - **DSH Desktop**：侧栏「插件」→ 已安装插件 → `dsh-text-preset` → 点击卸载。
   - **DSH CLI**：`dsh plugin --profile web remove dsh-text-preset`
 
 ## License
