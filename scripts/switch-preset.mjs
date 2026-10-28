@@ -41,19 +41,19 @@ function updatePatchPreset(nextPreset) {
 
 function showHelp() {
   console.log(`
-DeepSeek Harness (DSH) 纯净写作协作预设切换工具
+DeepSeek Harness (DSH) 纯净文本模式预设切换工具
 
 用法:
-  node scripts/switch-preset.mjs --list          列出所有可用预设提示层及当前激活项
-  node scripts/switch-preset.mjs --show [id]     打印指定预设（默认当前激活项）的组装后 System Prompt
+  node scripts/switch-preset.mjs --list          列出所有可用人设及当前激活项
+  node scripts/switch-preset.mjs --show [id]     打印指定人设（默认当前激活项）的组装后 System Prompt
   node scripts/switch-preset.mjs <presetId>      切换后台注入项并更新 cordis.patch.yml
 
-可用预设 ID:
+只影响「文本模式 · 动态」预设；「文本模式 · 纯净 / 公文办公 / 公文研究」三个前台预设的人设是固定的。
+
+可用人设 ID:
   pure     纯净通用写作底座（默认）
   office   公文办公（国企标准公文与合规汇报）
   research 公文研究（国企战略研究与智库化材料）
-  rp       创作与 RP 扮演（全浸入式叙事与第四面墙）
-  pro      职业写手（v2 无我沉浸版）
 `);
 }
 

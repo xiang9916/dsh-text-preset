@@ -47,8 +47,9 @@ assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'package.json v
 assert.ok(pkg.engines?.dsh, 'package.json 必须声明 engines.dsh（兼容性检查）');
 assert.match(pkg.engines.dsh, /0\.2\.1-rc\.2/, 'engines.dsh 下界必须覆盖已验证的 0.2.1-rc.2');
 assert.match(pkg.engines.dsh, /<\s*0\.3\.0/, 'engines.dsh 上界必须排除未验证的 0.3.x');
-// 0.2.1-rc.2 < 0.2.1-rc.3 < 0.3.0：同一条区间同时覆盖 rc.2 与 rc.3
-assert.equal(pkg.version, '0.2.1-rc.3', '本版本针对 DSH 0.2.1-rc.3 适配，package.json version 必须为 0.2.1-rc.3');
+// 0.2.1-rc.2 < 0.2.1-rc.3 < 0.2.1-rc.4 < 0.3.0：同一条区间覆盖 rc.2 / rc.3 / rc.4，
+// 0.2.2-alpha.2 在 DSH 的 includePrerelease 语义下同样满足
+assert.equal(pkg.version, '0.2.1-rc.4', '本版本针对 DSH 0.2.1-rc.4 适配，package.json version 必须为 0.2.1-rc.4');
 assert.equal(pkg.type, 'module');
 assert.ok(pkg.exports['.'], 'package.json 缺少 . 导出');
 assert.ok(pkg.exports['./presets'], 'package.json 缺少 ./presets 导出');
@@ -86,11 +87,11 @@ const clientExports = loaded.factory((id) => {
 });
 assert.equal(typeof clientExports.apply, 'function', 'client.apply 必须为函数');
 assert.ok(clientExports.inject.includes('configForms') && clientExports.inject.includes('slots'), 'client.inject 缺少必需服务');
-assert.equal(clientExports.PRESET_OPTIONS.length, 5, 'client 必须暴露 5 个预设选项');
+assert.equal(clientExports.PRESET_OPTIONS.length, 3, 'client 必须暴露 3 个预设选项');
 assert.equal(
   Array.from(clientExports.PRESET_OPTIONS, (o) => o.id).join(','),
-  'pure,office,research,rp,pro',
-  '预设面板顺序必须为 pure → office → research → rp → pro',
+  'pure,office,research',
+  '预设面板顺序必须为 pure → office → research',
 );
 // 客户端内嵌提示词不得被构建缩进污染（历史 bug：每行前缀 \t\t 进入提示词正文）
 assert.ok(
@@ -124,7 +125,7 @@ assert.equal(typeof pageEntry.inject, 'function', '槽位必须携带注入面')
 assert.ok(!clientSource.includes("'settings.section'"), 'dist/client.js 不得再注册 settings.section');
 assert.ok(!clientSource.includes("'plugins.item'"), 'dist/client.js 不得再注册 plugins.item');
 
-// 插件页以 view: 'page' 渲染配置页：冒烟渲染一次，确认标题、五个预设与工作区模式都在。
+// 插件页以 view: 'page' 渲染配置页：冒烟渲染一次，确认标题、五个预设与提示词预览都在。
 const collectText = (node, out) => {
   if (node === null || node === undefined || typeof node === 'boolean') return out;
   if (typeof node === 'string' || typeof node === 'number') { out.push(String(node)); return out; }
@@ -140,9 +141,6 @@ const pageTree = pageEntry.component({
     value: {
       activePreset: 'pure',
       includeBaseProtocol: true,
-      workspacePromptMode: 'off',
-      customPromptBehavior: 'append',
-      customPromptOverride: '',
     },
   }),
   set: () => {},
@@ -150,16 +148,36 @@ const pageTree = pageEntry.component({
 const pageText = collectText(pageTree, []).join('\n');
 assert.ok(pageText.includes('文本模式设置'), '配置页必须渲染「文本模式设置」标题');
 assert.ok(pageText.includes('纯净通用写作底座'), '配置页必须列出预设选项');
-assert.ok(pageText.includes('工作区提示模式'), '配置页必须渲染工作区提示模式分区');
+assert.ok(pageText.includes('公文办公'), '配置页必须列出公文办公人设');
+assert.ok(pageText.includes('公文研究'), '配置页必须列出公文研究人设');
 assert.ok(pageText.includes('System Prompt 预览'), '配置页必须渲染提示词预览');
+// 已删除的两个人设不得再出现在面板
+assert.ok(!pageText.includes('创作与 RP'), '已删除的 RP 人设不得出现在面板');
+assert.ok(!pageText.includes('职业写手'), '已删除的职业写手人设不得出现在面板');
+// 工作区提示模式整块移除：面板不得再出现任何模式选择或自定义文本框
+assert.ok(!pageText.includes('工作区提示模式'), '配置页不得再渲染「工作区提示模式」分区');
+assert.ok(!pageText.includes('初始纯净'), '配置页不得再渲染「初始纯净」模式卡片');
+assert.ok(!pageText.includes('自定义填写'), '配置页不得再渲染「自定义填写」模式卡片');
+assert.ok(!pageText.includes('工作区识别'), '配置页不得再渲染「工作区识别」模式卡片');
+// 预览必须带出计划模式提纲准则（第 5 条）
+assert.ok(pageText.includes('计划模式'), '配置页预览必须包含【文档与工具准则】的计划模式条目');
+assert.ok(pageText.includes('只交付提纲'), '配置页预览必须包含「只交付提纲」');
+
+// 源码与产物层不得残留三个已删配置项与工作区文档读取实现
+for (const rel of ['src/presets.ts', 'src/index.ts', 'dist/presets.js', 'dist/index.js', 'src/client/panel.js']) {
+  const source = fs.readFileSync(path.join(ROOT_DIR, rel), 'utf-8');
+  for (const banned of ['workspacePromptMode', 'customPromptBehavior', 'customPromptOverride', 'readWorkspaceDocs', 'resolveWorkspacePromptMode']) {
+    assert.ok(!source.includes(banned), `${rel} 不得残留已删除的 ${banned}`);
+  }
+}
 
 
 console.log('✓ [Test 1 通过] 所有关键文件与 ESM 模块导出接口验证完毕。');
 
 // ============================================================================
-// 测试 2：模拟 DSH SystemPrompt 变量插值与五大预设组合测试
+// 测试 2：模拟 DSH SystemPrompt 变量插值、三大预设与三个固定预设变量
 // ============================================================================
-console.log('\n[Test 2] 模拟 DSH SystemPrompt 模板变量插值与五大预设验证...');
+console.log('\n[Test 2] 模拟 DSH SystemPrompt 模板变量插值与三大预设验证...');
 
 class MockSystemPromptService {
   constructor() {
@@ -288,17 +306,21 @@ function createMockContext() {
   assert.match(rendered, /未经许可，查到的网页内容仅供参考，不可直接引用/, '联网引用必须受用户许可约束');
 }
 
-// 1. 验证 pro 预设（v2 无我沉浸版）
+// 1. 固定预设变量：三份人设各自固定，与动态预设的 activePreset 无关
 {
   const ctx = createMockContext();
-  hostModule.apply(ctx, { activePreset: 'pro', includeBaseProtocol: true });
-  const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
+  hostModule.apply(ctx, { activePreset: 'research', includeBaseProtocol: true });
 
-  assert.match(rendered, /【当前职能：职业写手】/, 'pro 模式必须包含职业写手标题');
-  assert.match(rendered, /以“忘我”为最高职业操守/, 'pro 模式必须是 v2 无我沉浸版');
-  assert.match(rendered, /【文档与工具准则】/, 'pro 模式必须拼接底座准则');
-  assert.match(rendered, /无痕修改/, '底座准则必须包含无痕修改');
-  assert.ok(rendered.includes('glob') && rendered.includes('grep'), '底座准则应说明 glob/grep 只读查找（fs-search 已挂载）');
+  const fixedPure = ctx.systemPrompt.render('{{writing_fixed_pure}}');
+  const fixedOffice = ctx.systemPrompt.render('{{writing_fixed_office}}');
+  const fixedResearch = ctx.systemPrompt.render('{{writing_fixed_research}}');
+
+  assert.ok(!fixedPure.includes('【当前职能'), '固定纯净预设不得注入任何人设');
+  assert.match(fixedPure, /^【文档与工具准则】/, '固定纯净预设必须只拼接准则');
+  assert.match(fixedOffice, /【当前职能：国企标准公文与合规汇报写作专家】/, '固定公文办公预设必须含公文办公人设');
+  assert.match(fixedResearch, /【角色与边界】/, '固定公文研究预设必须含公文研究人设');
+  assert.notEqual(fixedOffice, fixedResearch, '三个固定预设变量不得互相串用');
+  assert.match(fixedOffice, /【文档与工具准则】/, '固定预设默认拼接准则');
 }
 
 // 2. 验证 research 预设（公文研究）
@@ -307,21 +329,16 @@ function createMockContext() {
   hostModule.apply(ctx, { activePreset: 'research', includeBaseProtocol: true });
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
-  assert.match(rendered, /【当前职能：国企战略研究与智库化材料写作专家】/);
-  assert.match(rendered, /数据驱动与交叉验证/);
+  assert.match(rendered, /【角色与边界】/);
+  assert.match(rendered, /三类依据，缺一层就不下结论/);
   assert.match(rendered, /【文档与工具准则】/);
 }
 
-// 3. 验证 rp 预设（创作与 RP 扮演）
+// 3. 验证已删除的人设不再可组装（rp / pro 已下线）
 {
-  const ctx = createMockContext();
-  hostModule.apply(ctx, { activePreset: 'rp', includeBaseProtocol: true });
-  const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
-
-  assert.match(rendered, /【当前职能：全浸入式叙事与 RP 演绎】/);
-  assert.match(rendered, /严守“第四面墙”/);
-  assert.match(rendered, /Show, don't tell/);
-  assert.match(rendered, /【文档与工具准则】/);
+  assert.equal(presetsModule.WRITING_PRESET_BRICKS.rp, undefined, 'RP 人设必须已删除');
+  assert.equal(presetsModule.WRITING_PRESET_BRICKS.pro, undefined, '职业写手人设必须已删除');
+  assert.deepEqual(Object.keys(presetsModule.WRITING_PRESET_BRICKS), ['pure', 'office', 'research'], '人设字典必须只剩三大预设');
 }
 
 // 4. 验证 pure 预设（纯净通用写作底座 · 无角色偏见白板）
@@ -343,13 +360,19 @@ function createMockContext() {
   assert.match(rendered, /【当前职能：国企标准公文与合规汇报写作专家】/);
   assert.match(rendered, /说安全的话，办确定的话/);
   assert.match(rendered, /精准的层级语态转换/);
+  assert.match(rendered, /默认公文格式落盘/, '公文办公必须默认按公文格式成文落盘');
+  assert.match(rendered, /先定文种/, '公文办公必须先定文种再备要素');
+  assert.match(rendered, /请示：一文一事/, '公文办公必须体现请示一文一事');
+  assert.match(rendered, /报告：只汇报/, '公文办公必须区分报告与请示');
+  assert.match(rendered, /纪要/, '公文办公必须覆盖纪要格式');
+  assert.ok(!rendered.includes('版记齐全'), '不得要求公文要素一律齐套');
   assert.match(rendered, /【文档与工具准则】/);
 }
 
 // 6. 验证 Cordis Volatile 响应式对象模拟（.get() 解包）与热更新
 {
   const ctx = createMockContext();
-  let dynamicPreset = 'pro';
+  let dynamicPreset = 'office';
   const volatileConfig = {
     activePreset: {
       get() {
@@ -361,9 +384,9 @@ function createMockContext() {
 
   hostModule.apply(ctx, volatileConfig);
 
-  // 初始应为 pro
+  // 初始应为 office
   let rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
-  assert.match(rendered, /以“忘我”为最高职业操守/);
+  assert.match(rendered, /【当前职能：国企标准公文与合规汇报写作专家】/);
 
   // 动态修改 Volatile 配置并模拟触发 volatile-update
   let promptChangeFired = false;
@@ -376,23 +399,30 @@ function createMockContext() {
 
   assert.ok(promptChangeFired, '监听到 volatile-update 时必须触发 system-prompt/change 事件');
   rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
-  assert.match(rendered, /【当前职能：国企战略研究与智库化材料写作专家】/, '响应式读取必须自动返回更新后的预设');
+  assert.match(rendered, /【角色与边界】/, '响应式读取必须自动返回更新后的预设');
 }
 
-// 7. 验证 custom 模式（append）与 includeBaseProtocol=false
+// 7. 验证 includeBaseProtocol 开关、两层拼接顺序，以及已删除配置项不再生效
 {
-  const customText = '【特别规定】严格遵守三幕剧结构，在第二幕中段设置重大危机。';
-  const result = presetsModule.assembleWritingPrompt({
+  const pureOnly = presetsModule.assembleWritingPrompt({ activePreset: 'pure', includeBaseProtocol: false });
+  assert.equal(pureOnly, '', 'pure 预设关闭底座后必须为空串');
+  const officeFull = presetsModule.assembleWritingPrompt({ activePreset: 'office', includeBaseProtocol: true });
+  assert.ok(officeFull.startsWith('【当前职能：国企标准公文与合规汇报写作专家】'), 'office 人设必须排在准则之前');
+  assert.ok(officeFull.trimEnd().endsWith('不擅自增删章节。'), '准则必须收在计划模式第 5 条末尾');
+  const legacy = presetsModule.assembleWritingPrompt({
     activePreset: 'pure',
-    includeBaseProtocol: false,
-    customPromptOverride: customText,
+    includeBaseProtocol: true,
+    customPromptOverride: '【已删除的配置】不应出现',
     workspacePromptMode: 'custom',
-    customPromptBehavior: 'append',
+    customPromptBehavior: 'replace',
+    workspaceDocs: '## AGENTS.md\n不应出现',
   });
-  assert.equal(result, customText, 'custom(append) 下 pure 且关闭底座时，结果应精准为自定义文本');
+  assert.ok(!legacy.includes('【已删除的配置】'), 'customPromptOverride 已移除，不得再影响组装结果');
+  assert.ok(!legacy.includes('【工作区上下文规则】'), 'workspace 注入已移除，不得再拼工作区段');
+  assert.match(legacy, /^【文档与工具准则】/, 'pure 预设开启底座时必须以准则开头');
 }
 
-console.log('✓ [Test 2 通过] SystemPrompt 模板插值、5 种预设切换、Volatile 响应式与自定义覆盖验证通过。');
+console.log('✓ [Test 2 通过] SystemPrompt 模板插值、三大预设切换、固定预设变量、Volatile 响应式与两层拼接顺序验证通过。');
 
 // ============================================================================
 // 测试 3：校验 cordis.patch.yml 声明式补丁合规性
@@ -410,10 +440,29 @@ assert.match(patchYaml, /id:\s*agent-preset-registry/, '补丁必须包含 agent
 assert.match(patchYaml, /default:\s*writing/, '默认预设必须设置为 writing');
 assert.match(patchYaml, /id:\s*writing-brick-injector/, '必须包含 writing-brick-injector 注入器');
 assert.match(patchYamlEffective, /activePreset:\s*pure/, '默认激活预设必须为 pure（纯净通用写作底座）');
-assert.match(patchYaml, /id:\s*preset-writing\b/, '必须包含 preset-writing 主预设');
-assert.match(patchYaml, /prefix:\s*['"]\{\{writing_active_brick\}\}['"]/, '主预设必须使用 {{writing_active_brick}} 变量插值');
-assert.match(patchYaml, /complete:\s*true/, '预设必须开启 complete: true 以彻底清除原生编程提示词');
-assert.match(patchYaml, /includeRuntimeContext:\s*false/, '预设必须开启 includeRuntimeContext: false 以静音沙箱与审批上下文');
+
+// 四个前台预设：动态 + 纯净 / 公文办公 / 公文研究
+const PRESET_ROWS = [
+  ['preset-writing', 'writing', '文本模式 · 动态', '{{writing_active_brick}}'],
+  ['preset-writing-pure', 'writing-pure', '文本模式 · 纯净', '{{writing_fixed_pure}}'],
+  ['preset-writing-office', 'writing-office', '文本模式 · 公文办公', '{{writing_fixed_office}}'],
+  ['preset-writing-research', 'writing-research', '文本模式 · 公文研究', '{{writing_fixed_research}}'],
+];
+for (const [rowId, presetId, displayName, variable] of PRESET_ROWS) {
+  assert.match(patchYaml, new RegExp(`^ {4}- id: ${rowId}$`, 'm'), `补丁必须声明预设行 ${rowId}`);
+  assert.match(patchYaml, new RegExp(`^ {8}id: ${presetId}$`, 'm'), `预设 ${rowId} 的 config.id 必须为 ${presetId}`);
+  assert.match(patchYaml, new RegExp(`^ {8}name: ${displayName}$`, 'm'), `预设 ${rowId} 的显示名必须为「${displayName}」`);
+  assert.ok(patchYaml.includes(`prefix: '${variable}'`), `预设 ${rowId} 必须引用 ${variable}`);
+}
+assert.equal((patchYaml.match(/^ {4}- id: preset-writing/gm) || []).length, 4, '前台必须恰好声明四个文本模式预设');
+assert.match(patchYaml, /order:\s*1[\s\S]*order:\s*2[\s\S]*order:\s*3[\s\S]*order:\s*4/, '四个预设必须按 order 1-4 排列');
+assert.ok(!patchYaml.includes('preset-writing-rp'), '不得残留 RP 预设行');
+assert.ok(!patchYaml.includes('preset-writing-pro'), '不得残留职业写手预设行');
+assert.doesNotMatch(patchYamlEffective, /创作与 RP|职业写手/, '不得残留已删除的人设文案');
+
+// 四个预设都必须开启 complete + 静音运行时上下文
+assert.equal((patchYaml.match(/complete:\s*true/g) || []).length, 4, '四个预设都必须开启 complete: true');
+assert.equal((patchYaml.match(/includeRuntimeContext:\s*false/g) || []).length, 4, '四个预设都必须开启 includeRuntimeContext: false');
 assert.match(
   patchYaml,
   /isolate:\s*[\r\n]+\s*fs:\s*true[\r\n]+\s*attachments:\s*true/,
@@ -425,39 +474,74 @@ assert.doesNotMatch(patchYamlEffective, /readImage/, 'tool-fs 无 readImage 开�
 assert.doesNotMatch(patchYamlEffective, /\bread:\s*true\b/, 'tool-fs 无 read 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bwrite:\s*true\b/, 'tool-fs 无 write 布尔开关，不得写入无效配置键');
 assert.doesNotMatch(patchYamlEffective, /\bedit:\s*true\b/, 'tool-fs 无 edit 布尔开关，不得写入无效配置键');
-// 预设已挂载 tool-fs-search（glob/grep 只读查找），组内声明必须存在
-assert.ok(patchYaml.includes("'@deepseek-ai/dsh-tool-fs-search'"), 'pure-fs 组必须挂载 dsh-tool-fs-search（目录列举/内容检索）');
+// 每个预设的 pure-fs 组都必须挂载 fs-search（glob/grep 只读查找）
 const fsSearchCount = (patchYaml.match(/dsh-tool-fs-search/g) || []).length;
-assert.ok(fsSearchCount >= 1, `主预设的 pure-fs 组须挂载 fs-search（实际 ${fsSearchCount} 处）`);
+assert.equal(fsSearchCount, 4, `四个预设的 pure-fs 组都须挂载 fs-search（实际 ${fsSearchCount} 处）`);
 
-// 主预设显示名改为「文本模式」，不得残留旧名
-assert.match(patchYamlEffective, /name:\s*文本模式/, '主预设显示名必须为 文本模式');
-assert.doesNotMatch(patchYamlEffective, /写作协作模式/, '不得残留旧预设名 写作协作模式');
+// 四个预设共用的运行时能力：AGENTS.md 注入、当前时间、计划模式、用户确认、工具结果剪枝、文件与联网工具
+const SHARED_MODULES = [
+  '@deepseek-ai/dsh-agent-instructions',
+  '@deepseek-ai/dsh-time-context',
+  '@deepseek-ai/dsh-plan-mode',
+  '@deepseek-ai/dsh-tool-ask-user',
+  '@deepseek-ai/dsh-compaction-tool-result-pruner',
+  '@deepseek-ai/dsh-tool-fs',
+  '@deepseek-ai/dsh-tool-fs-search',
+  '@deepseek-ai/dsh-tool-web',
+  '@deepseek-ai/dsh-skill-filesystem',
+  '@deepseek-ai/dsh-tool-skill',
+  'dsh-text-preset/file-butler',
+  'dsh-text-preset/doc-bridge',
+];
+for (const mod of SHARED_MODULES) {
+  // 按带引号的完整包名计数，避免 dsh-tool-fs 命中 dsh-tool-fs-search
+  const count = patchYaml.split(`'${mod}'`).length - 1;
+  assert.equal(count, 4, `四个预设都必须挂载 ${mod}（实际 ${count} 处）`);
+}
 
-// 联网检索：主预设挂载 tool-web，fetch 开启且搜索超时 60 秒
-const webToolMounts = (patchYaml.match(/dsh-tool-web/g) || []).length;
-assert.ok(webToolMounts >= 1, `主预设须挂载 dsh-tool-web（实际 ${webToolMounts} 处）`);
-assert.match(patchYamlEffective, /fetch:\s*true[\r\n]+\s*searchTimeoutMs:\s*60000/, 'tool-web 必须开启 fetch: true 且 searchTimeoutMs: 60000');
+// 隔离域与剪枝参数：四个预设必须完全一致
+assert.equal(
+  (patchYaml.match(/isolate:\s*[\r\n]+\s*fs:\s*true[\r\n]+\s*attachments:\s*true/g) || []).length,
+  4,
+  '四个预设的 pure-fs 组都必须 isolate fs + attachments',
+);
+assert.equal(
+  (patchYaml.match(/ {10}- id: planning\n {12}name: cordis:group\n {12}group: true\n {12}isolate:\n {14}planMode: true/g) || []).length,
+  4,
+  '四个预设的计划模式都必须挂在 planMode 隔离组内（否则挂载审计失败）',
+);
+assert.equal(
+  (patchYaml.match(/ {14}compaction: true\n {14}toolResultPruner: true/g) || []).length,
+  4,
+  '四个预设的工具结果剪枝都必须与 compaction 同组隔离',
+);
+assert.equal(
+  (patchYaml.match(/thresholdChars:\s*8192[\r\n]+\s*headChars:\s*4096[\r\n]+\s*tailChars:\s*1024/g) || []).length,
+  4,
+  '四个预设的剪枝阈值必须一致（8192 / 4096 / 1024）',
+);
+assert.equal(
+  (patchYaml.match(/fetch:\s*true[\r\n]+\s*searchTimeoutMs:\s*60000/g) || []).length,
+  4,
+  '四个预设的 tool-web 都必须开启 fetch: true 且 searchTimeoutMs: 60000',
+);
 
-// 技能加载：主预设挂载 skill-filesystem 与 tool-skill
-const skillFsMounts = (patchYaml.match(/dsh-skill-filesystem/g) || []).length;
-const toolSkillMounts = (patchYaml.match(/dsh-tool-skill/g) || []).length;
-assert.ok(skillFsMounts >= 1, `主预设须挂载 dsh-skill-filesystem（实际 ${skillFsMounts} 处）`);
-assert.ok(toolSkillMounts >= 1, `主预设须挂载 dsh-tool-skill（实际 ${toolSkillMounts} 处）`);
+// 预设显示名：四个「文本模式 · X」；历史旧称（Unicode 转义书写）不得残留
+const LEGACY_PRESET_NAME = '\u5199\u4f5c\u534f\u4f5c\u6a21\u5f0f';
+assert.ok(!patchYamlEffective.includes(LEGACY_PRESET_NAME), '不得残留旧预设名');
+for (const name of ['文本模式 · 动态', '文本模式 · 纯净', '文本模式 · 公文办公', '文本模式 · 公文研究']) {
+  assert.ok(patchYaml.includes(`name: ${name}`), `补丁必须包含预设显示名「${name}」`);
+}
+
 // 技能节点必须位于 pure-fs 隔离组内（14 空格缩进），不得作为组外兄弟节点
 assert.doesNotMatch(patchYaml, /^ {10}- id: skill-filesystem$/m, 'skill-filesystem 不得挂在 pure-fs 组外');
 assert.doesNotMatch(patchYaml, /^ {10}- id: tool-skill$/m, 'tool-skill 不得挂在 pure-fs 组外');
-assert.ok((patchYaml.match(/^ {14}- id: skill-filesystem$/gm) || []).length >= 1, '主预设须在 pure-fs 组内挂载 skill-filesystem');
-assert.ok((patchYaml.match(/^ {14}- id: tool-skill$/gm) || []).length >= 1, '主预设须在 pure-fs 组内挂载 tool-skill');
+assert.equal((patchYaml.match(/^ {14}- id: skill-filesystem$/gm) || []).length, 4, '四个预设都须在 pure-fs 组内挂载 skill-filesystem');
+assert.equal((patchYaml.match(/^ {14}- id: tool-skill$/gm) || []).length, 4, '四个预设都须在 pure-fs 组内挂载 tool-skill');
 
-// 前台只保留「文本模式」一个预设，直选预设行必须全部移除
-const removedPresets = ['preset-writing-pro', 'preset-writing-research', 'preset-writing-rp', 'preset-writing-pure'];
-for (const pId of removedPresets) {
-  assert.ok(!patchYaml.includes(`id: ${pId}`), `直选预设行 ${pId} 应已移除`);
-}
-assert.doesNotMatch(patchYaml, /disabled:\s*true/, '不得再保留任何直选预设行（disabled: true）');
+assert.doesNotMatch(patchYaml, /disabled:\s*true/, '不得保留任何 disabled: true 的预设行');
 
-console.log('✓ [Test 3 通过] cordis.patch.yml 声明式架构、净化隔离参数与单预设结构完整合规。');
+console.log('✓ [Test 3 通过] cordis.patch.yml 四预设结构、共用运行时能力、隔离域与净化参数完整合规。');
 
 // ============================================================================
 // 测试 4：CLI 切换工具集成测试
@@ -469,10 +553,10 @@ const listOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.m
 assert.match(listOutput, /纯净通用写作底座（默认）/);
 assert.match(listOutput, /公文研究/);
 assert.match(listOutput, /公文办公/);
-assert.match(listOutput, /创作与 RP 扮演/);
-assert.match(listOutput, /职业写手（v2 无我沉浸版）/);
-// 列表顺序必须为 pure → office → research → rp → pro
-const listOrder = ['纯净通用写作底座（默认）', '公文办公', '公文研究', '创作与 RP 扮演', '职业写手（v2 无我沉浸版）'];
+assert.ok(!listOutput.includes('创作与 RP'), 'CLI 不得再列出已删除的 RP 人设');
+assert.ok(!listOutput.includes('职业写手'), 'CLI 不得再列出已删除的职业写手人设');
+// 列表顺序必须为 pure → office → research
+const listOrder = ['纯净通用写作底座（默认）', '公文办公', '公文研究'];
 const listIndex = listOrder.map((s) => listOutput.indexOf(s));
 assert.ok(
   listIndex.every((v, i) => v >= 0 && (i === 0 || v > listIndex[i - 1])),
@@ -486,7 +570,7 @@ assert.match(patchAfterResearch, /activePreset:\s*research/, '切换后 cordis.p
 
 // 3. 运行 --show 验证预览输出
 const showOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --show`, { encoding: 'utf-8' });
-assert.match(showOutput, /【当前职能：国企战略研究与智库化材料写作专家】/);
+assert.match(showOutput, /【角色与边界】/);
 
 // 4. 切回默认的 pure
 execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} pure`, { encoding: 'utf-8' });
@@ -496,104 +580,54 @@ assert.match(patchAfterDefault, /activePreset:\s*pure/, '切回后 cordis.patch.
 console.log('✓ [Test 4 通过] CLI 切换工具无损更新 cordis.patch.yml 测试完成。');
 
 // ============================================================================
-// 测试 5：工作区提示三模式矩阵（off / custom / workspace）与工作区文档读取
+// 测试 5：计划模式提纲准则与双配置项组装
 // ============================================================================
-console.log('\n[Test 5] 工作区提示三模式矩阵与 readWorkspaceDocs 真实文件系统验证...');
+console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...');
 
-// 5.1 off 模式：customPromptOverride 不生效（保持初始纯净）
+// 5.1 准则必须带计划模式提纲条目，且有明确约束
 {
-  const out = presetsModule.assembleWritingPrompt({
-    activePreset: 'pro', includeBaseProtocol: true,
-    customPromptOverride: '【不应出现的文本】', workspacePromptMode: 'off',
-  });
-  assert.ok(!out.includes('【不应出现的文本】'), 'off 模式下自定义文本不得混入');
+  const protocol = presetsModule.BASE_TOOL_PROTOCOL;
+  assert.match(protocol, /5\. 计划模式：/, '准则必须包含第 5 条计划模式');
+  assert.ok(protocol.includes('只交付提纲'), '准则必须要求计划模式只交付提纲');
+  assert.ok(protocol.includes('不写正文、不改文件'), '准则必须限制计划模式写正文/改文件');
+  assert.ok(protocol.includes('每节写什么'), '提纲必须写清每节内容');
+  assert.ok(protocol.includes('是否已到手'), '提纲必须核对依据是否到手');
+  assert.ok(protocol.includes('需要我拍板的取舍'), '提纲必须标出待定取舍');
+  assert.ok(protocol.includes('不擅自增删章节'), '必须约束按确认的提纲动笔');
 }
 
-// 5.2 custom 模式：append 追加在后 / replace 整段替换
+// 5.2 五个预设开启准则时都带该条，关闭后都不带
 {
-  const base = presetsModule.assembleWritingPrompt({ activePreset: 'pro', includeBaseProtocol: true });
-  const appended = presetsModule.assembleWritingPrompt({
-    activePreset: 'pro', includeBaseProtocol: true,
-    customPromptOverride: '【特别规定】三幕剧', workspacePromptMode: 'custom', customPromptBehavior: 'append',
-  });
-  assert.ok(appended.startsWith(base), 'append 模式初始提示必须在前');
-  assert.ok(appended.endsWith('【特别规定】三幕剧'), 'append 模式自定义文本必须追加在后');
-  const replaced = presetsModule.assembleWritingPrompt({
-    activePreset: 'pro', includeBaseProtocol: true,
-    customPromptOverride: '【整段替换】只有我', workspacePromptMode: 'custom', customPromptBehavior: 'replace',
-  });
-  assert.equal(replaced, '【整段替换】只有我', 'replace 模式必须整段替换初始提示');
+  for (const id of ['pure', 'office', 'research']) {
+    const on = presetsModule.assembleWritingPrompt({ activePreset: id, includeBaseProtocol: true });
+    assert.ok(on.includes('只交付提纲'), `预设 ${id} 开启准则时必须带计划模式提纲条目`);
+    const off = presetsModule.assembleWritingPrompt({ activePreset: id, includeBaseProtocol: false });
+    assert.ok(!off.includes('只交付提纲'), `预设 ${id} 关闭准则时不得带该条目`);
+  }
 }
 
-// 5.3 workspace 模式：注入【工作区上下文规则】段；空文档静音降级
+// 5.3 变量 provider 只按两项配置组装，不再接收会话上下文
 {
-  const out = presetsModule.assembleWritingPrompt({
-    activePreset: 'pure', includeBaseProtocol: true,
-    workspacePromptMode: 'workspace', workspaceDocs: '## AGENTS.md\n本工作区规则A',
-  });
-  assert.match(out, /【工作区上下文规则】/, 'workspace 模式必须包含段头');
-  assert.match(out, /本工作区规则A/, 'workspace 模式必须包含工作区文档内容');
-  const degraded = presetsModule.assembleWritingPrompt({
-    activePreset: 'pro', includeBaseProtocol: true, workspacePromptMode: 'workspace', workspaceDocs: '',
-  });
-  assert.ok(!degraded.includes('【工作区上下文规则】'), '空工作区文档必须静音降级为仅初始提示层');
-}
-
-// 5.4 readWorkspaceDocs 真实文件系统：顺序、去重、空目录降级、64KB 截断
-{
-  assert.equal(typeof hostModule.readWorkspaceDocs, 'function', '宿主模块必须导出 readWorkspaceDocs');
-  assert.equal(hostModule.resolveWorkspacePromptMode({ workspacePromptMode: 'workspace' }), 'workspace', 'resolveWorkspacePromptMode 解包正常');
-
-  const wsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ws-'));
-  fs.writeFileSync(path.join(wsDir, 'AGENTS.md'), '# agents\n协作规则', 'utf8');
-  fs.writeFileSync(path.join(wsDir, 'CLAUDE.md'), '# agents\n协作规则', 'utf8'); // 与 AGENTS.md 同内容，应去重
-  fs.mkdirSync(path.join(wsDir, 'memory'));
-  fs.writeFileSync(path.join(wsDir, 'memory', 'b.md'), '记忆B', 'utf8');
-
-  const docs = hostModule.readWorkspaceDocs(wsDir);
-  assert.match(docs, /## AGENTS\.md/, '必须包含 AGENTS.md 段');
-  assert.ok(!docs.includes('## CLAUDE.md'), '与 AGENTS.md 同内容的 CLAUDE.md 必须去重');
-  assert.match(docs, /## memory\/b\.md/, '必须包含 memory 目录文档');
-
-  // 空目录 → 空串（静音降级）
-  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ws-empty-'));
-  assert.equal(hostModule.readWorkspaceDocs(emptyDir), '', '无文档目录必须返回空串');
-  assert.equal(hostModule.readWorkspaceDocs(undefined), '', '无 cwd 必须返回空串');
-
-  // 超限截断：追加 70KB rules.md，总量超 64KB 上限
-  fs.writeFileSync(path.join(wsDir, 'rules.md'), 'x'.repeat(70 * 1024), 'utf8');
-  const big = hostModule.readWorkspaceDocs(wsDir);
-  assert.ok(big.includes('已截断'), '超限必须注明截断');
-  assert.ok(Buffer.byteLength(big, 'utf8') <= hostModule.WORKSPACE_DOCS_MAX_BYTES + 100, '截断后总字节不得超上限（含说明）');
-
-  // 性能与代理对边界防回归：2MB 含多字节汉字与 Emoji 的文档必须在 100ms 内完成 O(1) 截断，且末尾无 U+FFFD 或孤立代理项
-  fs.writeFileSync(path.join(wsDir, 'rules.md'), '设定🖋️章节'.repeat(200 * 1024), 'utf8');
-  fs.mkdirSync(path.join(wsDir, 'rules'), { recursive: true });
-  fs.writeFileSync(path.join(wsDir, 'rules', 'z-tail.md'), '截断后不应再拼入后续文件', 'utf8');
-  const t0 = Date.now();
-  const huge = hostModule.readWorkspaceDocs(wsDir);
-  const elapsedMs = Date.now() - t0;
-  assert.ok(elapsedMs < 200, `超大工作区文档截断必须为 O(1) 级（实际耗时 ${elapsedMs}ms）`);
-  assert.ok(!huge.includes('\uFFFD'), 'UTF-8 字节截断不得产生 U+FFFD 乱码');
-  assert.ok(!huge.includes('截断后不应再拼入后续文件'), '触发 64KB 截断后必须立即停止拼接后续文件');
-
-  // 5.5 变量 provider 接收 AssembleContext：有 cwd 注入工作区段，无 cwd 降级
-  const ctxWs = createMockContext();
-  hostModule.apply(ctxWs, { activePreset: 'pro', includeBaseProtocol: true, workspacePromptMode: 'workspace' });
-  const provider = ctxWs.systemPrompt.variables.get('writing_active_brick');
+  const ctx = createMockContext();
+  hostModule.apply(ctx, { activePreset: 'research', includeBaseProtocol: true });
+  const provider = ctx.systemPrompt.variables.get('writing_active_brick');
   assert.equal(typeof provider, 'function', '变量 provider 必须已注册');
-  const withCwd = provider({ agent: { session: { header: { cwd: wsDir } } } });
-  assert.match(withCwd, /【工作区上下文规则】/, '有 cwd 时必须注入工作区段');
-  assert.match(withCwd, /协作规则/, '有 cwd 时必须含 AGENTS.md 内容');
-  const noCwd = provider({});
-  assert.ok(!noCwd.includes('【工作区上下文规则】'), '无 cwd 时必须静音降级');
-  assert.match(noCwd, /【当前职能：职业写手】/, '降级后初始提示层保持完好');
-
-  fs.rmSync(wsDir, { recursive: true, force: true });
-  fs.rmSync(emptyDir, { recursive: true, force: true });
+  const rendered = provider({ agent: { session: { header: { cwd: '/tmp/whatever' } } } });
+  assert.match(rendered, /【角色与边界】/, 'research 人设必须生效');
+  assert.ok(rendered.includes('只交付提纲'), '提示词里必须带计划模式提纲条目');
+  assert.ok(!rendered.includes('【工作区上下文规则】'), '不得再注入工作区文档段');
 }
 
-console.log('✓ [Test 5 通过] 三模式矩阵（off/custom-append/custom-replace/workspace）、静音降级、64KB O(1) 截断与 provider 上下文注入验证完成。');
+// 5.4 已删除的宿主 API 与导出必须消失
+{
+  assert.equal(hostModule.readWorkspaceDocs, undefined, 'readWorkspaceDocs 必须已移除');
+  assert.equal(hostModule.resolveWorkspacePromptMode, undefined, 'resolveWorkspacePromptMode 必须已移除');
+  assert.equal(hostModule.WORKSPACE_DOCS_MAX_BYTES, undefined, 'WORKSPACE_DOCS_MAX_BYTES 必须已移除');
+  assert.equal(presetsModule.WORKSPACE_RULES_HEADER, undefined, 'WORKSPACE_RULES_HEADER 必须已移除');
+  assert.equal(presetsModule.resolveWorkspacePromptMode, undefined, 'presets 层 resolveWorkspacePromptMode 必须已移除');
+}
+
+console.log('✓ [Test 5 通过] 计划模式提纲条目、三预设覆盖、双配置项组装与已删除 API 校验完成。');
 
 // ═══════════════════════════════════════════════════════════════
 // [Test 6] file-butler 文件管理模块：注册、真实文件系统功能与 yml 挂载
@@ -676,7 +710,7 @@ console.log('✓ [Test 5 通过] 三模式矩阵（off/custom-append/custom-repl
   // 底座准则同步引用四工具
   {
     const ctx = createMockContext();
-    hostModule.apply(ctx, { activePreset: 'pro', includeBaseProtocol: true });
+    hostModule.apply(ctx, { activePreset: 'office', includeBaseProtocol: true });
     const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
     for (const t of ['copy_file', 'move_file', 'trash_file']) {
       assert.ok(rendered.includes(t), `底座准则必须说明 ${t}（file-butler 已挂载）`);
@@ -785,7 +819,7 @@ console.log('✓ [Test 6 通过] file-butler 四工具注册、真实文件系�
   // 底座准则引用两工具
   {
     const ctx = createMockContext();
-    hostModule.apply(ctx, { activePreset: 'pro', includeBaseProtocol: true });
+    hostModule.apply(ctx, { activePreset: 'office', includeBaseProtocol: true });
     const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
     for (const toolName of ['convert_document', 'export_document']) {
       assert.ok(rendered.includes(toolName), `底座准则必须说明 ${toolName}`);

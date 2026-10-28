@@ -4,12 +4,12 @@
  * 插件名称：writing-brick-injector
  * 职能：
  * 1. 声明后台可热更新（Volatile）的写作预设配置字段；
- * 2. 注册 ctx.systemPrompt.variable('writing_active_brick', (context) => assembleWritingPrompt(...))；
- *    workspace 模式下经 context.agent.session.header.cwd（DSH agent-loop 注册的同源事实）读取工作区文档；
+ * 2. 注册 ctx.systemPrompt.variable：
+ *    - writing_active_brick 供「文本模式 · 动态」按 activePreset 组装；
+ *    - writing_fixed_pure / writing_fixed_office / writing_fixed_research 供三个固定预设；
  * 3. 监听 loader/volatile-update 事件，触发 system-prompt/change 实时重绘提示词。
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -17,7 +17,7 @@ import {
   WRITING_PRESET_BRICKS,
   BASE_TOOL_PROTOCOL,
   assembleWritingPrompt,
-  resolveWorkspacePromptMode,
+  presetVariableName,
   type AssemblePromptOptions,
 } from './presets.js';
 
@@ -85,11 +85,8 @@ if (SchemaFactory === undefined) {
 if (SchemaFactory === undefined) SchemaFactory = createSchemaBuilder();
 
 export interface WritingInjectorConfig {
-  activePreset?: 'pure' | 'office' | 'research' | 'rp' | 'pro';
+  activePreset?: 'pure' | 'office' | 'research';
   includeBaseProtocol?: boolean;
-  customPromptOverride?: string;
-  workspacePromptMode?: 'off' | 'custom' | 'workspace';
-  customPromptBehavior?: 'append' | 'replace';
 }
 
 export const Config = SchemaFactory.object({
@@ -97,145 +94,41 @@ export const Config = SchemaFactory.object({
     'pure',
     'office',
     'research',
-    'rp',
-    'pro',
   ])
     .default('pure')
-    .description('当前激活的写作人设提示层：pure(纯净底座·默认) / office(公文办公) / research(公文研究) / rp(创作与RP) / pro(职业写手v2)')
+    .description('「文本模式 · 动态」当前注入的写作人设：pure(纯净底座·默认) / office(公文办公) / research(公文研究)')
     .volatile(),
 
   includeBaseProtocol: SchemaFactory.boolean()
     .default(true)
     .description('是否拼接第一层文档与工具准则（去工程化底座）')
     .volatile(),
-
-  customPromptOverride: SchemaFactory.string()
-    .default('')
-    .description('自定义工作区提示（workspacePromptMode=custom 时生效：append 追加在初始提示后 / replace 整段替换）')
-    .volatile(),
-
-  workspacePromptMode: SchemaFactory.union(['off', 'custom', 'workspace'])
-    .default('off')
-    .description('工作区提示三模式：off(仅初始提示层) / custom(使用自定义填写) / workspace(会话组装时读取工作区 AGENTS.md、memory、rules 等标准文档)')
-    .volatile(),
-
-  customPromptBehavior: SchemaFactory.union(['append', 'replace'])
-    .default('append')
-    .description('custom 模式行为：append(追加在初始提示之后) / replace(整段替换初始提示)')
-    .volatile(),
 });
-
-/**
- * 工作区基础设施文档扫描清单（按序拼接）：
- * AGENTS.md → CLAUDE.md（兼容别名，与 AGENTS.md 同内容时去重）→ memory.md → memory/*.md → rules.md → rules/*.md
- */
-const WORKSPACE_DOC_PLAN: Array<[string] | [string, '*.md']> = [
-  ['AGENTS.md'],
-  ['CLAUDE.md'],
-  ['memory.md'],
-  ['memory', '*.md'],
-  ['rules.md'],
-  ['rules', '*.md'],
-];
-
-/** 工作区文档总字节上限，超出截断并在段首注明 */
-export const WORKSPACE_DOCS_MAX_BYTES = 64 * 1024;
-
-/** 按 UTF-8 字节上限 O(1) 安全截断字符串，剥除末尾被劈开的不完整多字节序列（U+FFFD）。 */
-function sliceByUtf8Bytes(text: string, maxBytes: number): string {
-  if (maxBytes <= 0) return '';
-  const buf = Buffer.from(text, 'utf8');
-  if (buf.length <= maxBytes) return text;
-  return buf.subarray(0, maxBytes).toString('utf8').replace(/\uFFFD+$/g, '');
-}
-
-/**
- * 读取并拼接工作区基础设施文档（宿主侧，render 期同步执行）。
- * 任一文件缺失静默跳过；全部缺失返回空串（workspace 模式静音降级为仅初始提示层）。
- */
-export function readWorkspaceDocs(cwd: string | undefined): string {
-  if (!cwd || typeof cwd !== 'string') return '';
-
-  const parts: string[] = [];
-  const seenContents = new Set<string>();
-  let total = 0;
-  let truncated = false;
-
-  const pushDoc = (label: string, content: string): void => {
-    if (truncated) return;
-    const trimmed = content.trim();
-    if (!trimmed || seenContents.has(trimmed)) return;
-    const text = `## ${label}\n${trimmed}`;
-
-    const bytes = Buffer.byteLength(text, 'utf8');
-    if (total + bytes > WORKSPACE_DOCS_MAX_BYTES) {
-      const remain = WORKSPACE_DOCS_MAX_BYTES - total;
-      const sliced = sliceByUtf8Bytes(text, remain);
-      if (sliced.length > 0) parts.push(sliced);
-      truncated = true;
-      return;
-    }
-
-    seenContents.add(trimmed);
-    total += bytes;
-    parts.push(text);
-  };
-
-  for (const entry of WORKSPACE_DOC_PLAN) {
-    if (entry.length === 1) {
-      try {
-        pushDoc(entry[0], readFileSync(join(cwd, entry[0]), 'utf8'));
-      } catch {
-        // 文件不存在，跳过
-      }
-    } else {
-      const [dir] = entry;
-      try {
-        const files = readdirSync(join(cwd, dir)).filter((f) => f.endsWith('.md')).sort();
-        for (const f of files) {
-          try {
-            pushDoc(`${dir}/${f}`, readFileSync(join(cwd, dir, f), 'utf8'));
-          } catch {
-            // 单文件不可读，跳过
-          }
-        }
-      } catch {
-        // 目录不存在，跳过
-      }
-    }
-  }
-
-  if (parts.length === 0) return '';
-  const note = truncated ? '（工作区文档合计超出 64KB 上限，已截断）\n' : '';
-  return note + parts.join('\n\n');
-}
 
 /**
  * Cordis 插件生命周期挂载
  */
 export function apply(ctx: any, config: WritingInjectorConfig = {}) {
-  // 1. 注册动态系统提示词变量 {{writing_active_brick}}
+  // 1. 注册系统提示词变量：
+  //    - writing_active_brick：动态预设使用，随 activePreset 切换；
+  //    - writing_fixed_<id>：三个固定预设各用一个，人设固定、只随 includeBaseProtocol 变化。
   if (ctx.systemPrompt?.variable) {
-    const registerVariable = () => {
-      return ctx.systemPrompt.variable(
-        'writing_active_brick',
-        (context: any) => {
-          // DSH agent-loop 注册 prompt 变量时以 context.agent 携带会话事实
-          // （源码原句：variable("cwd", (context) => context.agent?.session.header.cwd)）
-          const cwd = context?.agent?.session?.header?.cwd as string | undefined;
-          const workspaceDocs
-            = resolveWorkspacePromptMode(config as AssemblePromptOptions) === 'workspace'
-              ? readWorkspaceDocs(cwd)
-              : '';
-          return assembleWritingPrompt({ ...(config as AssemblePromptOptions), workspaceDocs });
-        },
-      );
+    const registerVariable = (variableName: string, render: () => string) => {
+      const disposer = () => ctx.systemPrompt.variable(variableName, render);
+      if (typeof ctx.effect === 'function') {
+        ctx.effect(disposer, `writing-brick-injector.variable(${variableName})`);
+      } else {
+        disposer();
+      }
     };
 
-    if (typeof ctx.effect === 'function') {
-      ctx.effect(registerVariable, 'writing-brick-injector.variable()');
-    } else {
-      registerVariable();
+    registerVariable('writing_active_brick', () => assembleWritingPrompt(config as AssemblePromptOptions));
+
+    for (const presetId of Object.keys(WRITING_PRESET_BRICKS)) {
+      registerVariable(presetVariableName(presetId), () => assembleWritingPrompt({
+        activePreset: presetId,
+        includeBaseProtocol: (config as AssemblePromptOptions).includeBaseProtocol,
+      }));
     }
   }
 
@@ -260,5 +153,4 @@ export {
   WRITING_PRESET_BRICKS,
   BASE_TOOL_PROTOCOL,
   assembleWritingPrompt,
-  resolveWorkspacePromptMode,
 };

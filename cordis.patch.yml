@@ -1,10 +1,14 @@
 # DeepSeek Harness (DSH) 纯净文本模式插件声明式补丁
-# 默认将前台预设指向「文本模式」，并通过 writing-brick-injector 动态注入所选初始预设
+# 提供四个前台预设：
+#   - 文本模式 · 动态：人设由 writing-brick-injector 的 activePreset 选项动态决定
+#   - 文本模式 · 纯净 / 公文办公 / 公文研究：人设固定，各自引用 writing_fixed_<id> 变量
+# 四个预设共用同一套运行时能力（AGENTS.md 注入、时间、文件工具、联网、压缩、计划模式、用户确认）。
 #
-# 纯净工具面说明（DSH 0.2.1-rc.3 源码核验；rc.2 → rc.3 仅版本号变动，接口无差异）：
-# - @deepseek-ai/dsh-tool-fs 的 Config 仅接受 readLimit / readMaxLineLength /
-#   readMaxBytes / readStreamMinSize 四个数值参数，不存在 read/write/edit/readImage
-#   布尔开关；read/write/edit 随插件挂载整组注册，无需也无法逐个开关。
+# 纯净工具面说明（DSH 0.2.1-rc.4 源码核验；rc.3 → rc.4 仅修复 ACP 诊断输出，接口无差异；
+# 0.2.2-alpha.2 亦已核验，预设、工具与隔离相关接口无破坏性变更）：
+# - @deepseek-ai/dsh-tool-fs 的 Config 提供 read / readImage / write / edit 四个布尔开关
+#   （默认全为 true），以及 readLimit / readMaxLineLength / readMaxBytes /
+#   readStreamMinSize 四个数值参数；本插件不设开关，read/write/edit 随插件挂载整组注册。
 # - read_image 由 tool-fs 在 attachments 服务可见时自动注册（ctx.inject(['attachments'])）；
 #   组内 isolate attachments 切断 base bundle 根作用域的 attachment-local 服务，
 #   使 read_image 不注册——这是实现「仅 read/write/edit」设计意图的正规途径。
@@ -14,24 +18,21 @@
     default: writing
 
 - insert:
-    # 1. 宿主侧提示层动态注入器：负责后台选项配置与 {{writing_active_brick}} 变量注册
+    # 1. 宿主侧提示层注入器：负责后台选项配置与四个提示词变量的注册
     - id: writing-brick-injector
       name: 'dsh-text-preset'
       config:
         activePreset: pure
         includeBaseProtocol: true
-        customPromptOverride: ''
-        workspacePromptMode: off
-        customPromptBehavior: append
 
-    # 2. 主预设：文本模式（前台默认选中）
+    # 2. 文本模式 · 动态（前台默认选中）
     # 使用 {{writing_active_brick}} 变量动态插值，具体职能由上方 writing-brick-injector 的后台选项决定
     - id: preset-writing
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: writing
-        name: 文本模式
-        description: 纯净本地文档创作与协作模式。具体注入的写作职能提示层由插件后台 activePreset 选项动态控制。
+        name: 文本模式 · 动态
+        description: 纯净本地文档创作模式。注入的人设由插件后台 activePreset 选项动态切换（纯净 / 公文办公 / 公文研究）。
         order: 1
         plugins:
           - id: persona
@@ -40,6 +41,95 @@
               prefix: '{{writing_active_brick}}'
               complete: true
               includeRuntimeContext: false
+          # 提示层之外的运行时上下文：AGENTS.md 注入、当前时间注入
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: pure-fs
+            name: cordis:group
+            group: true
+            isolate:
+              fs: true
+              attachments: true
+            config:
+              - id: fs-local
+                name: '@deepseek-ai/dsh-fs-local'
+              - id: tool-fs
+                name: '@deepseek-ai/dsh-tool-fs'
+              - id: fs-search
+                name: '@deepseek-ai/dsh-tool-fs-search'
+                config:
+                  sampleOverCapGlobResults: false
+              - id: file-butler
+                name: 'dsh-text-preset/file-butler'
+              - id: doc-bridge
+                name: 'dsh-text-preset/doc-bridge'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          # 工具结果剪枝：超长结果按阈值截头留尾，避免单条工具输出挤占上下文
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          # 计划模式：exit_plan_mode；提纲要求写在【文档与工具准则】第 5 条
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: '计划模式：按【文档与工具准则】第 5 条执行，只交付写作提纲，不写正文、不改文件；提纲写清题目、分节、每节要点、所需依据是否已到手、预计篇幅，用户确认后再动笔。'
+          # 需要用户确认的选择项（多选/单选/自由输入）
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+    # 3. 文本模式 · 纯净：固定为纯净通用写作底座，不注入任何职能人设
+    - id: preset-writing-pure
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: writing-pure
+        name: 文本模式 · 纯净
+        description: 固定为纯净通用写作底座：只注入【文档与工具准则】，不预置任何职能角色倾向。
+        order: 2
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: '{{writing_fixed_pure}}'
+              complete: true
+              includeRuntimeContext: false
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
           - id: pure-fs
             name: cordis:group
             group: true
@@ -73,8 +163,185 @@
             group: true
             isolate:
               compaction: true
+              toolResultPruner: true
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: '计划模式：按【文档与工具准则】第 5 条执行，只交付写作提纲，不写正文、不改文件；提纲写清题目、分节、每节要点、所需依据是否已到手、预计篇幅，用户确认后再动笔。'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+    # 4. 文本模式 · 公文办公：固定为国企层级语态的公文办公人设
+    - id: preset-writing-office
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: writing-office
+        name: 文本模式 · 公文办公
+        description: 固定为公文办公人设：按国企行政层级与公文规范起草汇报与行文，严守权责边界、精准转换层级语态，先定文种再按文种备要素、默认公文格式落盘。
+        order: 3
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: '{{writing_fixed_office}}'
+              complete: true
+              includeRuntimeContext: false
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: pure-fs
+            name: cordis:group
+            group: true
+            isolate:
+              fs: true
+              attachments: true
+            config:
+              - id: fs-local
+                name: '@deepseek-ai/dsh-fs-local'
+              - id: tool-fs
+                name: '@deepseek-ai/dsh-tool-fs'
+              - id: fs-search
+                name: '@deepseek-ai/dsh-tool-fs-search'
+                config:
+                  sampleOverCapGlobResults: false
+              - id: file-butler
+                name: 'dsh-text-preset/file-butler'
+              - id: doc-bridge
+                name: 'dsh-text-preset/doc-bridge'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: '计划模式：按【文档与工具准则】第 5 条执行，只交付写作提纲，不写正文、不改文件；提纲写清题目、分节、每节要点、所需依据是否已到手、预计篇幅，用户确认后再动笔。'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+    # 5. 文本模式 · 公文研究：固定为国企政策与产业研究人设
+    - id: preset-writing-research
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: writing-research
+        name: 文本模式 · 公文研究
+        description: 固定为公文研究人设：面向国企战略、行业与宏观政策研究，判断、依据与数字核对纪律。
+        order: 4
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: '{{writing_fixed_research}}'
+              complete: true
+              includeRuntimeContext: false
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: pure-fs
+            name: cordis:group
+            group: true
+            isolate:
+              fs: true
+              attachments: true
+            config:
+              - id: fs-local
+                name: '@deepseek-ai/dsh-fs-local'
+              - id: tool-fs
+                name: '@deepseek-ai/dsh-tool-fs'
+              - id: fs-search
+                name: '@deepseek-ai/dsh-tool-fs-search'
+                config:
+                  sampleOverCapGlobResults: false
+              - id: file-butler
+                name: 'dsh-text-preset/file-butler'
+              - id: doc-bridge
+                name: 'dsh-text-preset/doc-bridge'
+              - id: skill-filesystem
+                name: '@deepseek-ai/dsh-skill-filesystem'
+              - id: tool-skill
+                name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: '计划模式：按【文档与工具准则】第 5 条执行，只交付写作提纲，不写正文、不改文件；提纲写清题目、分节、每节要点、所需依据是否已到手、预计篇幅，用户确认后再动笔。'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'

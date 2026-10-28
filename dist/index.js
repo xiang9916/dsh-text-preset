@@ -10,14 +10,13 @@
  */
 
 import { createRequire } from 'node:module';
-import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   WRITING_PRESET_BRICKS,
   BASE_TOOL_PROTOCOL,
   assembleWritingPrompt,
-  resolveWorkspacePromptMode,
+  presetVariableName,
 } from './presets.js';
 
 export const name = 'writing-brick-injector';
@@ -84,142 +83,38 @@ export const Config = SchemaFactory.object({
     'pure',
     'office',
     'research',
-    'rp',
-    'pro',
   ])
     .default('pure')
-    .description('当前激活的写作人设提示层：pure(纯净底座·默认) / office(公文办公) / research(公文研究) / rp(创作与RP) / pro(职业写手v2)')
+    .description('「文本模式 · 动态」当前注入的写作人设：pure(纯净底座·默认) / office(公文办公) / research(公文研究)')
     .volatile(),
 
   includeBaseProtocol: SchemaFactory.boolean()
     .default(true)
     .description('是否拼接第一层文档与工具准则（去工程化底座）')
     .volatile(),
-
-  customPromptOverride: SchemaFactory.string()
-    .default('')
-    .description('自定义工作区提示（workspacePromptMode=custom 时生效：append 追加在初始提示后 / replace 整段替换）')
-    .volatile(),
-
-  workspacePromptMode: SchemaFactory.union(['off', 'custom', 'workspace'])
-    .default('off')
-    .description('工作区提示三模式：off(仅初始提示层) / custom(使用自定义填写) / workspace(会话组装时读取工作区 AGENTS.md、memory、rules 等标准文档)')
-    .volatile(),
-
-  customPromptBehavior: SchemaFactory.union(['append', 'replace'])
-    .default('append')
-    .description('custom 模式行为：append(追加在初始提示之后) / replace(整段替换初始提示)')
-    .volatile(),
 });
 
-/**
- * 工作区基础设施文档扫描清单（按序拼接）：
- * AGENTS.md → CLAUDE.md（兼容别名，与 AGENTS.md 同内容时去重）→ memory.md → memory/*.md → rules.md → rules/*.md
- */
-const WORKSPACE_DOC_PLAN = [
-  ['AGENTS.md'],
-  ['CLAUDE.md'],
-  ['memory.md'],
-  ['memory', '*.md'],
-  ['rules.md'],
-  ['rules', '*.md'],
-];
-
-/** 工作区文档总字节上限，超出截断并在段首注明 */
-export const WORKSPACE_DOCS_MAX_BYTES = 64 * 1024;
-
-/** 按 UTF-8 字节上限 O(1) 安全截断字符串，剥除末尾被劈开的不完整多字节序列（U+FFFD）。 */
-function sliceByUtf8Bytes(text, maxBytes) {
-  if (maxBytes <= 0) return '';
-  const buf = Buffer.from(text, 'utf8');
-  if (buf.length <= maxBytes) return text;
-  return buf.subarray(0, maxBytes).toString('utf8').replace(/\uFFFD+$/g, '');
-}
-
-/**
- * 读取并拼接工作区基础设施文档（宿主侧，render 期同步执行）。
- * 任一文件缺失静默跳过；全部缺失返回空串（workspace 模式静音降级为仅初始提示层）。
- */
-export function readWorkspaceDocs(cwd) {
-  if (!cwd || typeof cwd !== 'string') return '';
-
-  const parts = [];
-  const seenContents = new Set();
-  let total = 0;
-  let truncated = false;
-
-  const pushDoc = (label, content) => {
-    if (truncated) return;
-    const trimmed = content.trim();
-    if (!trimmed || seenContents.has(trimmed)) return;
-    const text = `## ${label}\n${trimmed}`;
-
-    const bytes = Buffer.byteLength(text, 'utf8');
-    if (total + bytes > WORKSPACE_DOCS_MAX_BYTES) {
-      const remain = WORKSPACE_DOCS_MAX_BYTES - total;
-      const sliced = sliceByUtf8Bytes(text, remain);
-      if (sliced.length > 0) parts.push(sliced);
-      truncated = true;
-      return;
-    }
-
-    seenContents.add(trimmed);
-    total += bytes;
-    parts.push(text);
-  };
-
-  for (const entry of WORKSPACE_DOC_PLAN) {
-    if (entry.length === 1) {
-      try {
-        pushDoc(entry[0], readFileSync(join(cwd, entry[0]), 'utf8'));
-      } catch {
-        // 文件不存在，跳过
-      }
-    } else {
-      const dir = entry[0];
-      try {
-        const files = readdirSync(join(cwd, dir)).filter((f) => f.endsWith('.md')).sort();
-        for (const f of files) {
-          try {
-            pushDoc(`${dir}/${f}`, readFileSync(join(cwd, dir, f), 'utf8'));
-          } catch {
-            // 单文件不可读，跳过
-          }
-        }
-      } catch {
-        // 目录不存在，跳过
-      }
-    }
-  }
-
-  if (parts.length === 0) return '';
-  const note = truncated ? '（工作区文档合计超出 64KB 上限，已截断）\n' : '';
-  return note + parts.join('\n\n');
-}
-
 export function apply(ctx, config = {}) {
-  // 1. 注册动态系统提示词变量 {{writing_active_brick}}
+  // 1. 注册系统提示词变量：
+  //    - writing_active_brick：动态预设使用，随 activePreset 切换；
+  //    - writing_fixed_<id>：三个固定预设各用一个，人设固定、只随 includeBaseProtocol 变化。
   if (ctx.systemPrompt?.variable) {
-    const registerVariable = () => {
-      return ctx.systemPrompt.variable(
-        'writing_active_brick',
-        (context) => {
-          // DSH agent-loop 注册 prompt 变量时以 context.agent 携带会话事实
-          // （源码原句：variable("cwd", (context) => context.agent?.session.header.cwd)）
-          const cwd = context?.agent?.session?.header?.cwd;
-          const workspaceDocs
-            = resolveWorkspacePromptMode(config) === 'workspace'
-              ? readWorkspaceDocs(cwd)
-              : '';
-          return assembleWritingPrompt({ ...config, workspaceDocs });
-        },
-      );
+    const registerVariable = (variableName, render) => {
+      const disposer = () => ctx.systemPrompt.variable(variableName, render);
+      if (typeof ctx.effect === 'function') {
+        ctx.effect(disposer, `writing-brick-injector.variable(${variableName})`);
+      } else {
+        disposer();
+      }
     };
 
-    if (typeof ctx.effect === 'function') {
-      ctx.effect(registerVariable, 'writing-brick-injector.variable()');
-    } else {
-      registerVariable();
+    registerVariable('writing_active_brick', () => assembleWritingPrompt(config));
+
+    for (const presetId of Object.keys(WRITING_PRESET_BRICKS)) {
+      registerVariable(presetVariableName(presetId), () => assembleWritingPrompt({
+        activePreset: presetId,
+        includeBaseProtocol: config.includeBaseProtocol,
+      }));
     }
   }
 
@@ -248,5 +143,4 @@ export {
   WRITING_PRESET_BRICKS,
   BASE_TOOL_PROTOCOL,
   assembleWritingPrompt,
-  resolveWorkspacePromptMode,
 };
