@@ -47,9 +47,9 @@ assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'package.json v
 assert.ok(pkg.engines?.dsh, 'package.json 必须声明 engines.dsh（兼容性检查）');
 assert.match(pkg.engines.dsh, /0\.2\.1-rc\.2/, 'engines.dsh 下界必须覆盖已验证的 0.2.1-rc.2');
 assert.match(pkg.engines.dsh, /<\s*0\.3\.0/, 'engines.dsh 上界必须排除未验证的 0.3.x');
-// 0.2.1-rc.2 < 0.2.1-rc.3 < 0.2.1-rc.4 < 0.3.0：同一条区间覆盖 rc.2 / rc.3 / rc.4，
+// 0.2.1-rc.2 < 0.2.1-rc.3 < 0.2.1-rc.4 < 0.2.1-rc.5 < 0.3.0：同一条区间覆盖 rc.2 / rc.3 / rc.4 / rc.5，
 // 0.2.2-alpha.2 在 DSH 的 includePrerelease 语义下同样满足
-assert.equal(pkg.version, '0.2.1-rc.4', '本版本针对 DSH 0.2.1-rc.4 适配，package.json version 必须为 0.2.1-rc.4');
+assert.equal(pkg.version, '0.2.1-rc.5', '本版本针对 DSH 0.2.1-rc.5 适配，package.json version 必须为 0.2.1-rc.5');
 assert.equal(pkg.type, 'module');
 assert.ok(pkg.exports['.'], 'package.json 缺少 . 导出');
 assert.ok(pkg.exports['./presets'], 'package.json 缺少 ./presets 导出');

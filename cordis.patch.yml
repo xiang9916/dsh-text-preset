@@ -4,7 +4,7 @@
 #   - 文本模式 · 纯净 / 公文办公 / 公文研究：人设固定，各自引用 writing_fixed_<id> 变量
 # 四个预设共用同一套运行时能力（AGENTS.md 注入、时间、文件工具、联网、压缩、计划模式、用户确认）。
 #
-# 纯净工具面说明（DSH 0.2.1-rc.4 源码核验；rc.3 → rc.4 仅修复 ACP 诊断输出，接口无差异；
+# 纯净工具面说明（DSH 0.2.1-rc.5 源码核验；rc.4 → rc.5 仅优化对话中思考内容的展示，改动全在客户端；
 # 0.2.2-alpha.2 亦已核验，预设、工具与隔离相关接口无破坏性变更）：
 # - @deepseek-ai/dsh-tool-fs 的 Config 提供 read / readImage / write / edit 四个布尔开关
 #   （默认全为 true），以及 readLimit / readMaxLineLength / readMaxBytes /
