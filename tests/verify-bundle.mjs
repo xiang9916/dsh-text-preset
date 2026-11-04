@@ -47,9 +47,9 @@ assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'package.json v
 assert.ok(pkg.engines?.dsh, 'package.json 必须声明 engines.dsh（兼容性检查）');
 assert.match(pkg.engines.dsh, /0\.2\.1-rc\.2/, 'engines.dsh 下界必须覆盖已验证的 0.2.1-rc.2');
 assert.match(pkg.engines.dsh, /<\s*0\.3\.0/, 'engines.dsh 上界必须排除未验证的 0.3.x');
-// 0.2.1-rc.2 < 0.2.1-rc.3 < 0.2.1-rc.4 < 0.2.1-rc.5 < 0.3.0：同一条区间覆盖 rc.2 / rc.3 / rc.4 / rc.5，
-// 0.2.2-alpha.2 在 DSH 的 includePrerelease 语义下同样满足
-assert.equal(pkg.version, '0.2.1-rc.5', '本版本针对 DSH 0.2.1-rc.5 适配，package.json version 必须为 0.2.1-rc.5');
+// 0.2.1-rc.2 < 0.2.1-rc.5 < 0.2.2-rc.1 < 0.3.0：同一条区间覆盖 rc.2 ~ rc.5 与 0.2.2-rc.1，
+// 0.2.2-alpha.x 在 DSH 的 includePrerelease 语义下同样满足
+assert.equal(pkg.version, '0.2.2-rc.1', '本版本针对 DSH 0.2.2-rc.1 适配，package.json version 必须为 0.2.2-rc.1');
 assert.equal(pkg.type, 'module');
 assert.ok(pkg.exports['.'], 'package.json 缺少 . 导出');
 assert.ok(pkg.exports['./presets'], 'package.json 缺少 ./presets 导出');
@@ -304,6 +304,8 @@ function createMockContext() {
   assert.match(rendered, /保持原本的文风和排版连贯/, '底座改稿准则必须强调保持原本文风与排版');
   assert.match(rendered, /彻底去 AI 味/, '底座必须包含彻底去 AI 味导向');
   assert.match(rendered, /未经许可，查到的网页内容仅供参考，不可直接引用/, '联网引用必须受用户许可约束');
+  assert.ok(rendered.includes('present'), '底座准则应说明用 present 交付文件（present 已挂载）');
+  assert.ok(rendered.includes('一个都不能漏'), '底座准则必须要求交齐所有改动过的文件');
 }
 
 // 1. 固定预设变量：三份人设各自固定，与动态预设的 activePreset 无关
@@ -318,7 +320,7 @@ function createMockContext() {
   assert.ok(!fixedPure.includes('【当前职能'), '固定纯净预设不得注入任何人设');
   assert.match(fixedPure, /^【文档与工具准则】/, '固定纯净预设必须只拼接准则');
   assert.match(fixedOffice, /【当前职能：国企标准公文与合规汇报写作专家】/, '固定公文办公预设必须含公文办公人设');
-  assert.match(fixedResearch, /【角色与边界】/, '固定公文研究预设必须含公文研究人设');
+  assert.match(fixedResearch, /【当前职能：国企总部机关政策与产业研究主笔】/, '固定公文研究预设必须含公文研究人设');
   assert.notEqual(fixedOffice, fixedResearch, '三个固定预设变量不得互相串用');
   assert.match(fixedOffice, /【文档与工具准则】/, '固定预设默认拼接准则');
 }
@@ -329,8 +331,10 @@ function createMockContext() {
   hostModule.apply(ctx, { activePreset: 'research', includeBaseProtocol: true });
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
-  assert.match(rendered, /【角色与边界】/);
-  assert.match(rendered, /三类依据，缺一层就不下结论/);
+  assert.match(rendered, /【当前职能：国企总部机关政策与产业研究主笔】/);
+  assert.match(rendered, /三类依据（缺一层不下结论）/);
+  assert.match(rendered, /问题提出与结论 → 形势与依据/, '研究材料必须含固定核心结构链');
+  assert.match(rendered, /判断与依据分离/, '研究材料必须区分判断与依据');
   assert.match(rendered, /【文档与工具准则】/);
 }
 
@@ -358,8 +362,9 @@ function createMockContext() {
   const rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
 
   assert.match(rendered, /【当前职能：国企标准公文与合规汇报写作专家】/);
-  assert.match(rendered, /说安全的话，办确定的话/);
-  assert.match(rendered, /精准的层级语态转换/);
+  assert.match(rendered, /说安全的话，办确定的事/);
+  assert.match(rendered, /二、层级语态转换/);
+  assert.match(rendered, /事务性文书/, '公文办公必须区分法定公文与事务性文书');
   assert.match(rendered, /默认公文格式落盘/, '公文办公必须默认按公文格式成文落盘');
   assert.match(rendered, /先定文种/, '公文办公必须先定文种再备要素');
   assert.match(rendered, /请示：一文一事/, '公文办公必须体现请示一文一事');
@@ -399,7 +404,7 @@ function createMockContext() {
 
   assert.ok(promptChangeFired, '监听到 volatile-update 时必须触发 system-prompt/change 事件');
   rendered = ctx.systemPrompt.render('{{writing_active_brick}}');
-  assert.match(rendered, /【角色与边界】/, '响应式读取必须自动返回更新后的预设');
+  assert.match(rendered, /【当前职能：国企总部机关政策与产业研究主笔】/, '响应式读取必须自动返回更新后的预设');
 }
 
 // 7. 验证 includeBaseProtocol 开关、两层拼接顺序，以及已删除配置项不再生效
@@ -408,7 +413,7 @@ function createMockContext() {
   assert.equal(pureOnly, '', 'pure 预设关闭底座后必须为空串');
   const officeFull = presetsModule.assembleWritingPrompt({ activePreset: 'office', includeBaseProtocol: true });
   assert.ok(officeFull.startsWith('【当前职能：国企标准公文与合规汇报写作专家】'), 'office 人设必须排在准则之前');
-  assert.ok(officeFull.trimEnd().endsWith('不擅自增删章节。'), '准则必须收在计划模式第 5 条末尾');
+  assert.ok(officeFull.trimEnd().endsWith('与本次任务无关的文件不要塞进去。'), '准则必须收在文件交付第 6 条末尾');
   const legacy = presetsModule.assembleWritingPrompt({
     activePreset: 'pure',
     includeBaseProtocol: true,
@@ -488,6 +493,7 @@ const SHARED_MODULES = [
   '@deepseek-ai/dsh-tool-fs',
   '@deepseek-ai/dsh-tool-fs-search',
   '@deepseek-ai/dsh-tool-web',
+  '@deepseek-ai/dsh-tool-present',
   '@deepseek-ai/dsh-skill-filesystem',
   '@deepseek-ai/dsh-tool-skill',
   'dsh-text-preset/file-butler',
@@ -498,6 +504,10 @@ for (const mod of SHARED_MODULES) {
   const count = patchYaml.split(`'${mod}'`).length - 1;
   assert.equal(count, 4, `四个预设都必须挂载 ${mod}（实际 ${count} 处）`);
 }
+
+// 文件交付工具 present 必须挂在 pure-fs 组内：它注入组内隔离的 fs，组外拿不到
+assert.equal((patchYaml.match(/^ {14}- id: present$/gm) || []).length, 4, '四个预设都须在 pure-fs 组内挂载 present');
+assert.doesNotMatch(patchYaml, /^ {10}- id: present$/m, 'present 不得挂在 pure-fs 组外（组外拿不到隔离 fs）');
 
 // 隔离域与剪枝参数：四个预设必须完全一致
 assert.equal(
@@ -570,7 +580,7 @@ assert.match(patchAfterResearch, /activePreset:\s*research/, '切换后 cordis.p
 
 // 3. 运行 --show 验证预览输出
 const showOutput = execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} --show`, { encoding: 'utf-8' });
-assert.match(showOutput, /【角色与边界】/);
+assert.match(showOutput, /【当前职能：国企总部机关政策与产业研究主笔】/);
 
 // 4. 切回默认的 pure
 execSync(`node ${path.join(ROOT_DIR, 'scripts/switch-preset.mjs')} pure`, { encoding: 'utf-8' });
@@ -584,7 +594,7 @@ console.log('✓ [Test 4 通过] CLI 切换工具无损更新 cordis.patch.yml �
 // ============================================================================
 console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...');
 
-// 5.1 准则必须带计划模式提纲条目，且有明确约束
+// 5.1 准则必须带计划模式提纲与文件交付条目，且有明确约束
 {
   const protocol = presetsModule.BASE_TOOL_PROTOCOL;
   assert.match(protocol, /5\. 计划模式：/, '准则必须包含第 5 条计划模式');
@@ -594,9 +604,13 @@ console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...')
   assert.ok(protocol.includes('是否已到手'), '提纲必须核对依据是否到手');
   assert.ok(protocol.includes('需要我拍板的取舍'), '提纲必须标出待定取舍');
   assert.ok(protocol.includes('不擅自增删章节'), '必须约束按确认的提纲动笔');
+  assert.match(protocol, /6\. 文件交付：/, '准则必须包含第 6 条文件交付');
+  assert.ok(protocol.includes('收尾必须调用 present'), '准则必须要求收尾调用 present 交齐文件');
+  assert.ok(protocol.includes('不算交付'), '准则必须说明仅在回复里提路径不算交付');
+  assert.ok(protocol.includes('没动过文件时不调用'), '准则必须限定无文件改动时不调用');
 }
 
-// 5.2 五个预设开启准则时都带该条，关闭后都不带
+// 5.2 三个预设开启准则时都带该条，关闭后都不带
 {
   for (const id of ['pure', 'office', 'research']) {
     const on = presetsModule.assembleWritingPrompt({ activePreset: id, includeBaseProtocol: true });
@@ -613,7 +627,7 @@ console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...')
   const provider = ctx.systemPrompt.variables.get('writing_active_brick');
   assert.equal(typeof provider, 'function', '变量 provider 必须已注册');
   const rendered = provider({ agent: { session: { header: { cwd: '/tmp/whatever' } } } });
-  assert.match(rendered, /【角色与边界】/, 'research 人设必须生效');
+  assert.match(rendered, /【当前职能：国企总部机关政策与产业研究主笔】/, 'research 人设必须生效');
   assert.ok(rendered.includes('只交付提纲'), '提示词里必须带计划模式提纲条目');
   assert.ok(!rendered.includes('【工作区上下文规则】'), '不得再注入工作区文档段');
 }
