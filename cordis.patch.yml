@@ -4,10 +4,13 @@
 #   - 文本模式 · 纯净 / 公文办公 / 公文研究：人设固定，各自引用 writing_fixed_<id> 变量
 # 四个预设共用同一套运行时能力（AGENTS.md 注入、时间、文件工具与交付、联网、压缩、计划模式、用户确认）。
 #
-# 纯净工具面说明（DSH 0.2.2-rc.1 源码核验；0.2.1-rc.5 → 0.2.2-rc.1 为功能版本，307 个 @deepseek-ai 包中 174 个
-# 的 lib/*.js 有改动，多为本地化文案、插件管理与新增实验插件；本插件挂载的预设、工具、隔离与设置接口无破坏性变更：
-# system-prompt 仅内部类型 PromptAssembly 改名 PromptPresentation（variable / render / change 不变），
-# plan-mode 会话状态升到 v4，tool-present 仅改描述；0.2.1-rc.5 ~ rc.2 亦已核验）：
+# 纯净工具面说明（DSH 0.2.2-rc.4 源码核验；0.2.2-rc.1 → rc.4 为功能版本，340 个 @deepseek-ai 包中 181 个
+# 的 lib/*.js 有改动，新增 agent-team / computer-use / mcp-manager / office-kit / tool-office 等 16 个包、
+# 移除 7 个；本插件挂载的预设、工具、隔离与设置接口无破坏性变更：system-prompt 仅增删槽位常量
+# （新增 TOOL_PTY_PANEL、移除 TEAM_IDENTITY，variable / render / change 不变），tool-fs 与 tool-present
+# 改为抛 ToolArgsError / FsError（工具名与参数不变），tool-fs-search 把 ripgrep 解析挪到 dsh-util-ripgrep，
+# tool-web 仅把检索默认上限提到 10/10，plan-mode / persona / agent-instructions / 压缩剪枝只动文案；
+# 0.2.2-rc.3 ~ rc.1 与 0.2.1-rc.5 ~ rc.2 亦已核验）：
 # - @deepseek-ai/dsh-tool-fs 的 Config 提供 read / readImage / write / edit 四个布尔开关
 #   （默认全为 true），以及 readLimit / readMaxLineLength / readMaxBytes /
 #   readStreamMinSize 四个数值参数；本插件不设开关，read/write/edit 随插件挂载整组注册。

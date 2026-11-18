@@ -47,9 +47,9 @@ assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'package.json v
 assert.ok(pkg.engines?.dsh, 'package.json 必须声明 engines.dsh（兼容性检查）');
 assert.match(pkg.engines.dsh, /0\.2\.1-rc\.2/, 'engines.dsh 下界必须覆盖已验证的 0.2.1-rc.2');
 assert.match(pkg.engines.dsh, /<\s*0\.3\.0/, 'engines.dsh 上界必须排除未验证的 0.3.x');
-// 0.2.1-rc.2 < 0.2.1-rc.5 < 0.2.2-rc.1 < 0.3.0：同一条区间覆盖 rc.2 ~ rc.5 与 0.2.2-rc.1，
+// 0.2.1-rc.2 < 0.2.1-rc.5 < 0.2.2-rc.1 < 0.2.2-rc.4 < 0.3.0：同一条区间覆盖 rc.2 ~ rc.5 与 0.2.2-rc.1 ~ rc.4，
 // 0.2.2-alpha.x 在 DSH 的 includePrerelease 语义下同样满足
-assert.equal(pkg.version, '0.2.2-rc.1', '本版本针对 DSH 0.2.2-rc.1 适配，package.json version 必须为 0.2.2-rc.1');
+assert.equal(pkg.version, '0.2.2-rc.4', '本版本针对 DSH 0.2.2-rc.4 适配，package.json version 必须为 0.2.2-rc.4');
 assert.equal(pkg.type, 'module');
 assert.ok(pkg.exports['.'], 'package.json 缺少 . 导出');
 assert.ok(pkg.exports['./presets'], 'package.json 缺少 ./presets 导出');
@@ -370,6 +370,11 @@ function createMockContext() {
   assert.match(rendered, /请示：一文一事/, '公文办公必须体现请示一文一事');
   assert.match(rendered, /报告：只汇报/, '公文办公必须区分报告与请示');
   assert.match(rendered, /纪要/, '公文办公必须覆盖纪要格式');
+  assert.match(rendered, /四、行文与格式基准与“去AI化”语感约束/, '公文办公必须带去 AI 化语感约束');
+  assert.ok(rendered.includes('【严禁微型总结句】'), '必须禁止句首句尾塞微型总结句');
+  assert.ok(rendered.includes('【保持叙事散文感】'), '必须要求叙事散文感、允许长短句交错');
+  assert.ok(rendered.includes('【消除机械排比】'), '必须消除机械排比与对称结构');
+  assert.ok(rendered.includes('剔除空洞套话'), '必须剔除生硬的 AI 过渡句');
   assert.ok(!rendered.includes('版记齐全'), '不得要求公文要素一律齐套');
   assert.match(rendered, /【文档与工具准则】/);
 }
@@ -413,7 +418,7 @@ function createMockContext() {
   assert.equal(pureOnly, '', 'pure 预设关闭底座后必须为空串');
   const officeFull = presetsModule.assembleWritingPrompt({ activePreset: 'office', includeBaseProtocol: true });
   assert.ok(officeFull.startsWith('【当前职能：国企标准公文与合规汇报写作专家】'), 'office 人设必须排在准则之前');
-  assert.ok(officeFull.trimEnd().endsWith('与本次任务无关的文件不要塞进去。'), '准则必须收在文件交付第 6 条末尾');
+  assert.ok(officeFull.trimEnd().endsWith('与本次任务无关的文件不要塞进去。'), '准则必须收在文件交付第 7 条末尾');
   const legacy = presetsModule.assembleWritingPrompt({
     activePreset: 'pure',
     includeBaseProtocol: true,
@@ -592,6 +597,18 @@ console.log('✓ [Test 4 通过] CLI 切换工具无损更新 cordis.patch.yml �
 // ============================================================================
 // 测试 5：计划模式提纲准则与双配置项组装
 // ============================================================================
+// 5.0 源码与产物必须同源：BASE_TOOL_PROTOCOL 在 src/presets.ts 与 dist/presets.js 中逐字节一致
+// （dist 由手工维护、无 tsc 步骤；只改 src 会造成构建内联过期文案）
+{
+  const extract = (rel) => {
+    const text = fs.readFileSync(path.join(ROOT_DIR, rel), 'utf-8');
+    const m = /export const BASE_TOOL_PROTOCOL = `([\s\S]*?)`;/.exec(text);
+    assert.ok(m, `${rel} 必须导出 BASE_TOOL_PROTOCOL`);
+    return m[1];
+  };
+  assert.equal(extract('dist/presets.js'), extract('src/presets.ts'), 'src/presets.ts 与 dist/presets.js 的【文档与工具准则】必须逐字节一致');
+}
+
 console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...');
 
 // 5.1 准则必须带计划模式提纲与文件交付条目，且有明确约束
@@ -604,7 +621,18 @@ console.log('\n[Test 5] 计划模式提纲准则与双配置项组装验证...')
   assert.ok(protocol.includes('是否已到手'), '提纲必须核对依据是否到手');
   assert.ok(protocol.includes('需要我拍板的取舍'), '提纲必须标出待定取舍');
   assert.ok(protocol.includes('不擅自增删章节'), '必须约束按确认的提纲动笔');
-  assert.match(protocol, /6\. 文件交付：/, '准则必须包含第 6 条文件交付');
+  assert.match(protocol, /6\. 文件交付前检查：/, '准则必须包含第 6 条文件交付前检查');
+  assert.ok(protocol.indexOf('6. 文件交付前检查：') < protocol.indexOf('7. 文件交付：'), '交付前检查必须排在文件交付之前');
+  assert.ok(protocol.includes('命中下面任何一条就返工'), '交付前检查必须写明命中即返工');
+  assert.ok(protocol.includes('整段重写'), '交付前检查必须区分局部返工与整段重写');
+  assert.ok(protocol.includes('内容失真'), '交付前检查必须覆盖内容失真');
+  assert.ok(protocol.includes('语言走味'), '交付前检查必须覆盖语言走味');
+  assert.ok(protocol.includes('版式硬伤'), '交付前检查必须覆盖版式硬伤');
+  assert.ok(protocol.includes('交付物本身'), '交付前检查必须覆盖交付物本身');
+  assert.ok(protocol.includes('AI 味关键词'), '交付前检查必须带可续加的 AI 味关键词清单');
+  assert.ok(protocol.includes('整篇重新生成'), 'AI 味关键词命中必须要求整篇重新生成');
+  assert.ok(protocol.includes('这个问题我认'), '关键词清单必须以「认」为例');
+  assert.match(protocol, /7\. 文件交付：/, '准则必须包含第 7 条文件交付');
   assert.ok(protocol.includes('收尾必须调用 present'), '准则必须要求收尾调用 present 交齐文件');
   assert.ok(protocol.includes('不算交付'), '准则必须说明仅在回复里提路径不算交付');
   assert.ok(protocol.includes('没动过文件时不调用'), '准则必须限定无文件改动时不调用');
