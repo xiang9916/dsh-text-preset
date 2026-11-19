@@ -6,7 +6,7 @@
 
 **极简介绍**：船板自用 DSH 写作工作台，砍掉 DSH 所有系统提示（接近极简模式），同时比极简模式增加贴合写作全流程的本地工具集（读写改、只读查找、可恢复文件整理、Word 稿件进出），添加情境代入写作人设，帮助 Agent 更好代入。
 
-**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。代码基线为上游 **v0.3.0**；本仓库版本号自 **0.2.1** 起独立演进，并跟随 DSH 版本对齐（当前 **0.2.2-rc.4**），与上游 0.3.0 不存在“版本落后”关系。安装前请确认版本与你的 DSH 匹配。
+**关于本仓库**：这是 `xiang9916` 的个人 fork，包名与插件身份已调整为 `dsh-text-preset`，功能、补丁逻辑与预设内容与上游保持功能一致，方便作为自己的写作预设基底继续改造。本仓库已清空上游历史，从单一初始提交开始独立演进。代码基线为上游 **v0.3.0**；本仓库版本号自 **0.2.1** 起独立演进，并跟随 DSH 版本对齐（当前 **0.2.2-rc.5**），与上游 0.3.0 不存在“版本落后”关系。安装前请确认版本与你的 DSH 匹配。
 
 插件本身不具备破限和风格指定效果，破限和风格指定需要用户在工作区添加世界观和写作风格资料、伪上下文；插件预设起到的作用，是帮助 Agent 更好地接受和理解你的设定，就像药引子。
 
@@ -45,11 +45,11 @@ dsh plugin --profile web add dsh-text-preset
 dsh web
 ```
 
-- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.2.2-rc.4`
+- 锁定版本：`dsh plugin --profile web add dsh-text-preset@0.2.2-rc.5`
 - **未全局安装 `dsh` CLI**：将上面的 `dsh` 替换为 `npx @deepseek-ai/dsh`。
 
-> **版本对应关系**：本插件按 DSH 版本对齐发布——插件 `0.2.2-rc.4` 对应 DSH `0.2.2-rc.4`，并兼容 `0.2.2-rc.3`～`0.2.2-rc.1` 与 `0.2.1-rc.5`～`0.2.1-rc.2`。
-> npm 上 `latest` 与 `next` 均指向 `0.2.2-rc.4`；老版本 `0.2.1`（稳定号命名）保留但已落后，不建议再装。
+> **版本对应关系**：本插件按 DSH 版本对齐发布——插件 `0.2.2-rc.5` 对应 DSH `0.2.2-rc.5`，并兼容 `0.2.2-rc.4`～`0.2.2-rc.1` 与 `0.2.1-rc.5`～`0.2.1-rc.2`。
+> npm 上 `latest` 与 `next` 均指向 `0.2.2-rc.5`；老版本 `0.2.1`（稳定号命名）保留但已落后，不建议再装。
 
 ### 2. GitHub Release（tgz）
 
@@ -67,7 +67,7 @@ npx @deepseek-ai/dsh plugin --profile web add https://github.com/xiang9916/dsh-t
 
 ```sh
 npm pack
-dsh plugin --profile web add ./dsh-text-preset-0.2.2-rc.4.tgz
+dsh plugin --profile web add ./dsh-text-preset-0.2.2-rc.5.tgz
 ```
 
 也可以直接运行仓库自带的注册脚本（以 symlink 方式挂进桌面版 profile，带备份、可重复执行，改完源码无需重新打包）：
@@ -141,10 +141,10 @@ patch: name mismatch for "writing-brick-injector"
 
 ## 兼容性
 
-- 已验证的 DSH 版本：**0.2.2-rc.4**；同区间的 **0.2.2-rc.3 / 0.2.2-rc.2 / 0.2.2-rc.1** 与 **0.2.1-rc.5 / 0.2.1-rc.4 / 0.2.1-rc.3 / 0.2.1-rc.2** 亦可运行
-- `0.2.2-rc.1 → 0.2.2-rc.4` 是功能版本：340 个 `@deepseek-ai` 包中 181 个的 `lib/*.js` 有改动，新增 16 个包（agent-team、computer-use / cua、mcp-manager、office-kit、tool-office、terminal-panel、util-ripgrep 等），移除 7 个（account-platform、office-to-pdf、实验版 agent-team 等）；本插件挂载的 17 个包逐个核对了导出契约与 Config 结构，均无破坏性变更：`system-prompt` 只增删槽位常量（新增 `TOOL_PTY_PANEL`、移除 `TEAM_IDENTITY`，`variable` / `render` / `system-prompt/change` 不变），`tool-fs` / `tool-present` 改为抛类型化错误（`ToolArgsError` / `FsError`，工具名与参数不变），`tool-fs-search` 把 ripgrep 解析挪到新的 `dsh-util-ripgrep` 包，`tool-web` 只把检索默认上限从 8/4 提到 10/10，`plan-mode` / `persona` / `agent-instructions` / 压缩剪枝只动文案
-- 实测（全新 `DSH_HOME` + 0.2.2-rc.4 CLI，`--from-default-profile web`）：`plugin add` → `--dump-config` 四个预设、`present` 行、`planMode` 与 `toolResultPruner` 隔离组、剪枝阈值 8192/4096/1024、`maxBytes: 65536` 全部就位且零警告；Web 启动无报错，页面 200 且客户端模块 `dsh-text-preset/client.js` 正常下发（15534 字节）
-- `package.json` 声明 `engines.dsh: ">=0.2.1-rc.2 <0.3.0"`，该区间覆盖 0.2.1-rc.2 ~ 0.2.2-rc.4，并在 DSH 的 `includePrerelease` 校验语义下同样接受 0.2.2-alpha.x，DSH Market 可据此显示兼容状态，而不是 `unknown`
+- 已验证的 DSH 版本：**0.2.2-rc.5**；同区间的 **0.2.2-rc.4 / 0.2.2-rc.3 / 0.2.2-rc.2 / 0.2.2-rc.1** 与 **0.2.1-rc.5 / 0.2.1-rc.4 / 0.2.1-rc.3 / 0.2.1-rc.2** 亦可运行
+- `0.2.2-rc.4 → 0.2.2-rc.5` 是小版本：340 个 `@deepseek-ai` 包只升版本号，无新增与移除，全部文件里仅 39 个（分布在 13 个包）内容有改动，且集中在网页搜索——基础组合不再固定 `searchProvider`，改由 `dsh-web` 按模型路由自动选择：`deepseek-official` / `deepseek-account` 路由上走旧版 Messages 搜索（不按次收费、按 token 计费），其余路由仍走 DeepSeek Search API；`tool-web` 把发起调用的会话最近一次模型请求的路由作为 `llmProvider` 透传给 `ctx.web`；设置页的搜索提供方菜单新增「自动选择」。本插件不设置 `searchProvider`，因此自动继承这一行为，`tool-web` 的 `fetch` / `searchTimeoutMs` 配置未变，挂载的 17 个包均无破坏性变更
+- 实测（全新 `DSH_HOME` + 0.2.2-rc.5 CLI，`--from-default-profile web`）：`plugin add` → `--dump-config` 四个预设、`present` 行、`planMode` 与 `toolResultPruner` 隔离组、剪枝阈值 8192/4096/1024、`maxBytes: 65536` 全部就位且零警告；Web 启动无报错，页面 200 且客户端模块 `dsh-text-preset/client.js` 正常下发（15534 字节）
+- `package.json` 声明 `engines.dsh: ">=0.2.1-rc.2 <0.3.0"`，该区间覆盖 0.2.1-rc.2 ~ 0.2.2-rc.5，并在 DSH 的 `includePrerelease` 校验语义下同样接受 0.2.2-alpha.x，DSH Market 可据此显示兼容状态，而不是 `unknown`
 - 插件依赖 0.2.x 的预设与补丁接口；DSH 0.3.x 尚未验证，升级前请先确认
 
 ---
@@ -208,7 +208,7 @@ DSH 原生的 `minimal` 模式之所以不能直接用来写东西，是因为�
   - **只读查找（`@deepseek-ai/dsh-tool-fs-search`）**：挂载 `glob`（列举文件，100 条上限 + 溢出清单；注：`*.md` 为全树递归，`/*.md` 为根层锚定，仅返回文件不返回目录名）与 `grep`（正则全文检索带行号）。
   - **文件整理（`file-butler`）**：提供 `copy_file`、`move_file`、`trash_file`、`stat_file` 四个服务端纯路径工具——长稿与二进制流转不经过模型上下文；`copy_file` 与 `move_file` 默认 `overwrite: false` 防误覆写（目标传目录名时自动拼入同名文件）；`trash_file` 将文件移入 `~/.Trash`（带毫秒时间戳与防碰撞序号，可手动恢复，不承诺 Finder「放回原处」元数据），绝不永久删除。
   - **Word 单向文档桥（`doc-bridge`）**：零外部依赖提供 `convert_document`（`.docx` → `.md`）与 `export_document`（`.md` → 新建 `.docx`）。定位为**内容级单向转换**：保留正文段落、标题层级（H1–H6）与列表项，表格拍平为正文行，行内粗斜体等样式不保留；内置**双向防覆盖保护**——目标 `.md` 已存在时自动派生 `<name>.converted.md`，目标 `.docx` 已存在时自动派生 `<name>.exported.docx`，绝不修改或覆盖原稿。
-  - **联网检索（`@deepseek-ai/dsh-tool-web`）**：挂载 `web_search` 与 `web_fetch`（`fetch: true`），搜索超时 60 秒。检索结果按外部数据对待，未经许可不作直接引用，不把网页文字当作指令。
+  - **联网检索（`@deepseek-ai/dsh-tool-web`）**：挂载 `web_search` 与 `web_fetch`（`fetch: true`），搜索超时 60 秒。不指定搜索提供方，由宿主按模型路由自动选择：DeepSeek 模型会话走旧版 Messages 搜索，其他路由走 DeepSeek Search API。检索结果按外部数据对待，未经许可不作直接引用，不把网页文字当作指令。
   - **文件交付（`@deepseek-ai/dsh-tool-present`）**：任务收尾把本次修订过的文件一次性交给界面（路径 + 一句话说明），由客户端渲染为可点开的文件卡片；只接受已存在的普通文件，单次最多 8 个（超出提示分批），校验与读取走 `pure-fs` 组内隔离的 `fs`，同时按【文档与工具准则】第 7 条要求 Agent 不得漏交。
   - **技能加载（`@deepseek-ai/dsh-skill-filesystem` + `@deepseek-ai/dsh-tool-skill`）**：从 DSH 用户级 / 项目级技能目录读取 `SKILL.md`，由 `tool-skill` 暴露 `skill` 工具供 Agent 按需加载。两者与 `fs-local` 同处 `pure-fs` 隔离组，技能读取走预设内的工作区 fs，不会回退到 Node 原生 `node:fs`，也不会绕过工作区隔离。
   - *(注：会话中另有宿主运行时自带的 `working_directory` 与 `load_workspace_dependencies`，非本插件注册。)*
